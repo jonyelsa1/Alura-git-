@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.Apps
@@ -91,6 +91,7 @@ import dev.lanzador.tablet.ui.QuickAction
 import dev.lanzador.tablet.ui.common.AppTarget
 import dev.lanzador.tablet.ui.common.ColorAppIcon
 import dev.lanzador.tablet.ui.common.DesignCanvas
+import dev.lanzador.tablet.ui.common.widgetClick
 import dev.lanzador.tablet.ui.common.GlassSurface
 import dev.lanzador.tablet.ui.common.GlassTint
 import dev.lanzador.tablet.ui.common.TileMenuContext
@@ -216,7 +217,7 @@ private fun Hero(state: HomeState, actions: LauncherActions, modifier: Modifier)
                     append(m)
                 },
                 style = o(128.sp, 250, spacing = (-6).sp),
-                modifier = Modifier.padding(top = 2.dp).clickable(onClick = actions::openClock),
+                modifier = Modifier.padding(top = 2.dp).widgetClick(onClick = actions::openClock),
             )
             Text(formatLongDate(now), style = b(22.sp, 500, Color(0xFFDDD5F5)))
             Spacer(Modifier.weight(1f))
@@ -225,7 +226,7 @@ private fun Hero(state: HomeState, actions: LauncherActions, modifier: Modifier)
             val millisNow = now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White.copy(alpha = 0.06f))
-                    .clickable { if (next != null) actions.openCalendar(next) else if (alarm != null) actions.openClock() else actions.openCalendar(null) }
+                    .widgetClick { if (next != null) actions.openCalendar(next) else if (alarm != null) actions.openClock() else actions.openCalendar(null) }
                     .padding(start = 12.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -360,7 +361,7 @@ private fun Focus(state: HomeState, actions: LauncherActions, modifier: Modifier
 
 @Composable
 private fun SquareButton(icon: ImageVector, description: String, bg: Color, fg: Color, onClick: () -> Unit) {
-    Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(bg).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(bg).widgetClick(onClick = onClick), contentAlignment = Alignment.Center) {
         Icon(icon, description, Modifier.size(22.dp), tint = fg)
     }
 }
@@ -369,7 +370,7 @@ private fun SquareButton(icon: ImageVector, description: String, bg: Color, fg: 
 private fun Photo(state: HomeState, actions: LauncherActions, modifier: Modifier) {
     val photos = state.photos
     Box(
-        modifier.clip(TileShape).clickable {
+        modifier.clip(TileShape).widgetClick {
             if (photos is PhotoUi.NoPermission) actions.request(Permission.PHOTOS) else actions.openPhoto(photos)
         },
     ) {
@@ -435,7 +436,7 @@ private fun Favorites(state: HomeState, actions: LauncherActions, nav: HomeNav, 
             Spacer(Modifier.weight(1f))
             Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.07f)))
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { nav.openDrawer(false, null) }.padding(top = 12.dp, bottom = 2.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).widgetClick { nav.openDrawer(false, null) }.padding(top = 12.dp, bottom = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Todas las apps · ${state.apps.size}", style = b(14.sp, 600, Lila), modifier = Modifier.weight(1f))
@@ -468,7 +469,7 @@ private fun Toggles(state: HomeState, actions: LauncherActions, modifier: Modifi
             specs.chunked(2).forEach { row ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                     row.forEach { s ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(74.dp).clip(RoundedCornerShape(14.dp)).clickable { actions.quick(s.action) }) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(74.dp).clip(RoundedCornerShape(14.dp)).widgetClick { actions.quick(s.action) }) {
                             Box(Modifier.size(50.dp).clip(CircleShape).background(if (s.on) Amber else Color.White.copy(alpha = 0.08f)), contentAlignment = Alignment.Center) {
                                 Icon(s.icon, null, Modifier.size(21.dp), tint = if (s.on) OnAmber else Color(0xFFE9E3FB))
                             }
@@ -490,7 +491,7 @@ private fun Tasks(state: HomeState, actions: LauncherActions, nav: HomeNav, modi
             Spacer(Modifier.height(6.dp))
             state.tasks.sortedBy { it.done }.take(4).forEach { task -> TaskLine(task, actions) }
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(onClick = nav.addTask).padding(vertical = 11.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).widgetClick(onClick = nav.addTask).padding(vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Rounded.Add, null, Modifier.size(20.dp), tint = Mut)
@@ -559,7 +560,7 @@ private fun Music(state: HomeState, actions: LauncherActions, modifier: Modifier
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable {
+                modifier = Modifier.clip(RoundedCornerShape(12.dp)).widgetClick {
                     when {
                         media != null -> actions.openMediaApp(media)
                         !state.mediaSupported -> actions.openMusicApp()
@@ -584,7 +585,7 @@ private fun Music(state: HomeState, actions: LauncherActions, modifier: Modifier
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 SmallIcon(Icons.Rounded.SkipPrevious, "Anterior", actions::mediaPrevious)
-                Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White).clickable(onClick = actions::mediaPlayPause), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White).widgetClick(onClick = actions::mediaPlayPause), contentAlignment = Alignment.Center) {
                     Icon(if (media?.playing == true) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Reproducir o pausar", Modifier.size(22.dp), tint = Color(0xFF1A1230))
                 }
                 SmallIcon(Icons.Rounded.SkipNext, "Siguiente", actions::mediaNext)
@@ -595,7 +596,7 @@ private fun Music(state: HomeState, actions: LauncherActions, modifier: Modifier
 
 @Composable
 private fun SmallIcon(icon: ImageVector, description: String, onClick: () -> Unit) {
-    Box(Modifier.size(36.dp).clip(CircleShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(36.dp).clip(CircleShape).widgetClick(onClick = onClick), contentAlignment = Alignment.Center) {
         Icon(icon, description, Modifier.size(22.dp), tint = Color(0xFFE9E3FB))
     }
 }
@@ -607,7 +608,7 @@ private fun Dock(state: HomeState, actions: LauncherActions, nav: HomeNav, modif
         Row(Modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 Modifier.width(searchWidth).height(54.dp).clip(RoundedCornerShape(20.dp)).background(Color.White.copy(alpha = 0.07f))
-                    .clickable { nav.openDrawer(true, null) }.padding(horizontal = 16.dp),
+                    .widgetClick { nav.openDrawer(true, null) }.padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Rounded.Search, null, Modifier.size(20.dp), tint = Color(0xFFE9E3FB))
@@ -620,8 +621,12 @@ private fun Dock(state: HomeState, actions: LauncherActions, nav: HomeNav, modif
                 }
             }
             Box(
+                Modifier.size(54.dp).clip(RoundedCornerShape(17.dp)).background(Color.White.copy(alpha = 0.08f)).widgetClick(onClickLabel = "Cambiar estilo", onClick = nav.openStylePicker),
+                contentAlignment = Alignment.Center,
+            ) { Icon(Icons.Rounded.Palette, "Cambiar estilo", Modifier.size(24.dp), tint = Color(0xFFE9E3FB)) }
+            Box(
                 Modifier.size(54.dp).clip(RoundedCornerShape(17.dp)).background(Brush.linearGradient(listOf(Color(0xFFF6F2FF), Lila)))
-                    .clickable { nav.openDrawer(false, null) },
+                    .widgetClick { nav.openDrawer(false, null) },
                 contentAlignment = Alignment.Center,
             ) { Icon(Icons.Rounded.Apps, "Todas las apps", Modifier.size(25.dp), tint = Color(0xFF1A1230)) }
         }

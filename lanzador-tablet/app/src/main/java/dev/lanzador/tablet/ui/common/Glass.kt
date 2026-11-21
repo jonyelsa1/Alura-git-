@@ -1,6 +1,8 @@
 package dev.lanzador.tablet.ui.common
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -15,7 +17,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -115,7 +121,7 @@ fun GlassSurface(
                 }
             }
             .then(if (rim) Modifier.border(1.2.dp, rimBrush, shape) else Modifier)
-            .then(if (onClick != null) Modifier.clickable(onClickLabel = onClickLabel, onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.widgetClick(onClickLabel = onClickLabel, onClick = onClick) else Modifier)
             .padding(contentPadding),
         content = content,
     )
@@ -152,4 +158,24 @@ fun DesignCanvas(
             Box(Modifier.fillMaxSize(), content = content)
         }
     }
+}
+
+/** Qué hace mantener pulsado un widget de la pantalla de inicio (abrir el selector de estilo). */
+val LocalHomeLongPress = staticCompositionLocalOf<() -> Unit> { {} }
+
+/**
+ * Toque normal para la acción del widget; pulsación larga para el selector de
+ * estilo. Así mantener pulsado nunca abre el widget por accidente al soltar.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+fun Modifier.widgetClick(enabled: Boolean = true, onClickLabel: String? = null, onClick: () -> Unit): Modifier = composed {
+    val longPress = LocalHomeLongPress.current
+    val haptics = LocalHapticFeedback.current
+    combinedClickable(
+        enabled = enabled,
+        onClickLabel = onClickLabel,
+        onLongClickLabel = "Cambiar estilo",
+        onLongClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); longPress() },
+        onClick = onClick,
+    )
 }

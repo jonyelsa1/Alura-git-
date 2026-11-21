@@ -7,6 +7,7 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.ContentUris
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
 import android.net.Uri
 import android.os.Build
@@ -159,17 +160,31 @@ class DeviceActions(
     }
 
     override fun openCalendar(event: CalendarEvent?) {
-        if (event != null) {
-            start(
-                Intent(Intent.ACTION_VIEW, ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, event.id))
-                    .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, event.begin)
-                    .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, event.end),
-            )
+        val pkg = calendarPackage()
+        val view = if (event != null) {
+            Intent(Intent.ACTION_VIEW, ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, event.id))
+                .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, event.begin)
+                .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, event.end)
         } else {
             val uri = CalendarContract.CONTENT_URI.buildUpon().appendPath("time").also { ContentUris.appendId(it, System.currentTimeMillis()) }.build()
-            start(Intent(Intent.ACTION_VIEW, uri), Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_CALENDAR))
+            Intent(Intent.ACTION_VIEW, uri)
         }
+        // Otras apps (JW Library, Outlook…) también dicen abrir eventos; se fija la de calendario.
+        if (pkg != null) view.setPackage(pkg)
+        if (pkg != null && view.resolveActivity(activity.packageManager) == null) view.setPackage(null)
+        val main = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR)
+        start(view, main)
     }
+
+    /** La app de calendario predeterminada; si no hay, Google Calendar o la primera que haya. */
+    private fun calendarPackage(): String? = runCatching {
+        val pm = activity.packageManager
+        val selector = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR)
+        val default = pm.resolveActivity(selector, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
+        if (default != null && default != "android") return default
+        val all = pm.queryIntentActivities(selector, 0).map { it.activityInfo.packageName }
+        all.firstOrNull { it == "com.google.android.calendar" } ?: all.firstOrNull()
+    }.getOrNull()
 
     override fun openPhoto(photos: PhotoUi) {
         if (photos is PhotoUi.Ready) {

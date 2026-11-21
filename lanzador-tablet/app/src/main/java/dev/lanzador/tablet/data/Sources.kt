@@ -81,9 +81,11 @@ object CalendarSource {
                 }
             }
         }
-        val todayEvents = events.filter { it.begin < tomorrowStart && it.end > maxOf(now, todayStart) }
+        // El mismo evento puede estar en dos calendarios de la cuenta: se muestra una vez.
+        val unique = events.distinctBy { Triple(it.title.trim().lowercase(), it.begin, it.end) }
+        val todayEvents = unique.filter { it.begin < tomorrowStart && it.end > maxOf(now, todayStart) }
             .sortedWith(compareBy<CalendarEvent>({ !it.allDay }, { it.begin }))
-        val tomorrow = events.filter { it.begin >= tomorrowStart && it.begin < rangeEnd }
+        val tomorrow = unique.filter { it.begin >= tomorrowStart && it.begin < rangeEnd }
             .sortedWith(compareBy<CalendarEvent>({ it.allDay }, { it.begin }))
             .firstOrNull()
         CalendarUi.Ready(todayEvents, tomorrow)

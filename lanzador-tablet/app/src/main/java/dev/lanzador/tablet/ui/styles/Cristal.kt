@@ -5,8 +5,6 @@ package dev.lanzador.tablet.ui.styles
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.Apps
@@ -75,6 +74,7 @@ import dev.lanzador.tablet.ui.Permission
 import dev.lanzador.tablet.ui.QuickAction
 import dev.lanzador.tablet.ui.common.AppTarget
 import dev.lanzador.tablet.ui.common.DesignCanvas
+import dev.lanzador.tablet.ui.common.widgetClick
 import dev.lanzador.tablet.ui.common.GlassAppIcon
 import dev.lanzador.tablet.ui.common.GlassSurface
 import dev.lanzador.tablet.ui.common.TileMenuContext
@@ -115,7 +115,7 @@ private fun CristalLandscape(state: HomeState, actions: LauncherActions, nav: Ho
         Row(Modifier.fillMaxWidth()) {
             CristalClock(state, actions, nav, Modifier.weight(1f), clockSize = 176.sp)
             Column(Modifier.width(466.dp)) {
-                SearchGlass(actions, nav)
+                SearchRow(actions, nav)
                 Spacer(Modifier.height(16.dp))
                 WeatherGlass(state, actions, nav, Modifier.fillMaxWidth().height(200.dp))
             }
@@ -139,7 +139,7 @@ private fun CristalLandscape(state: HomeState, actions: LauncherActions, nav: Ho
 private fun CristalPortrait(state: HomeState, actions: LauncherActions, nav: HomeNav) {
     Column(Modifier.fillMaxSize().padding(horizontal = 40.dp, vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         CristalClock(state, actions, nav, Modifier.fillMaxWidth(), clockSize = 150.sp)
-        SearchGlass(actions, nav)
+        SearchRow(actions, nav)
         WeatherGlass(state, actions, nav, Modifier.fillMaxWidth().height(200.dp))
         Row(Modifier.fillMaxWidth().height(252.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             AgendaGlass(state, actions, Modifier.weight(1f).fillMaxHeight())
@@ -162,7 +162,7 @@ private fun CristalClock(state: HomeState, actions: LauncherActions, nav: HomeNa
     Column(modifier) {
         Text(
             formatClock(now, is24),
-            modifier = Modifier.clickable(remember0(), indication = null, onClick = actions::openClock),
+            modifier = Modifier.widgetClick(onClick = actions::openClock),
             style = TextStyle(
                 fontFamily = Inter, fontWeight = FontWeight(200), fontSize = clockSize, lineHeight = clockSize * 0.98f,
                 letterSpacing = (-8).sp,
@@ -190,9 +190,6 @@ private fun CristalClock(state: HomeState, actions: LauncherActions, nav: HomeNa
 }
 
 @Composable
-private fun remember0() = androidx.compose.runtime.remember { MutableInteractionSource() }
-
-@Composable
 private fun Chip(icon: ImageVector, text: String, onClick: () -> Unit) {
     GlassSurface(Modifier.height(40.dp), shape = RoundedCornerShape(20.dp), onClick = onClick, contentPadding = PaddingValues(start = 12.dp, end = 16.dp)) {
         Row(Modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
@@ -204,9 +201,9 @@ private fun Chip(icon: ImageVector, text: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SearchGlass(actions: LauncherActions, nav: HomeNav) {
+private fun SearchGlass(actions: LauncherActions, nav: HomeNav, modifier: Modifier = Modifier.fillMaxWidth()) {
     GlassSurface(
-        Modifier.fillMaxWidth().height(58.dp), shape = RoundedCornerShape(29.dp),
+        modifier.height(58.dp), shape = RoundedCornerShape(29.dp),
         onClick = { nav.openDrawer(true, null) }, onClickLabel = "Buscar",
         contentPadding = PaddingValues(start = 20.dp, end = 8.dp),
     ) {
@@ -214,9 +211,20 @@ private fun SearchGlass(actions: LauncherActions, nav: HomeNav) {
             Icon(Icons.Rounded.Search, null, Modifier.size(23.dp))
             Spacer(Modifier.width(12.dp))
             Text("Buscar apps, ajustes o en la web", style = t(16.sp, 500, 0.85f), modifier = Modifier.weight(1f))
-            Box(Modifier.size(44.dp).clip(CircleShape).clickable(onClick = actions::voiceSearch), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(44.dp).clip(CircleShape).widgetClick(onClick = actions::voiceSearch), contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.Mic, "Buscar por voz", Modifier.size(22.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun SearchRow(actions: LauncherActions, nav: HomeNav) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        SearchGlass(actions, nav, Modifier.weight(1f))
+        Spacer(Modifier.width(12.dp))
+        GlassSurface(Modifier.size(58.dp), shape = CircleShape, onClick = nav.openStylePicker, onClickLabel = "Cambiar estilo") {
+            Icon(Icons.Rounded.Palette, "Cambiar estilo", Modifier.align(Alignment.Center).size(24.dp))
         }
     }
 }
@@ -309,7 +317,7 @@ private fun AgendaGlass(state: HomeState, actions: LauncherActions, modifier: Mo
                         Spacer(Modifier.weight(1f))
                     } else {
                         events.forEach { e ->
-                            Row(Modifier.padding(top = 14.dp).clickable { actions.openCalendar(e) }) {
+                            Row(Modifier.padding(top = 14.dp).widgetClick { actions.openCalendar(e) }) {
                                 Box(Modifier.width(4.dp).height(42.dp).clip(RoundedCornerShape(2.dp)).background(Color(e.color or 0xFF000000.toInt())))
                                 Spacer(Modifier.width(12.dp))
                                 Column {
@@ -336,7 +344,7 @@ private fun AgendaGlass(state: HomeState, actions: LauncherActions, modifier: Mo
 @Composable
 private fun PillButton(text: String, onClick: () -> Unit) {
     Box(
-        Modifier.clip(RoundedCornerShape(20.dp)).background(Color.White).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 9.dp),
+        Modifier.clip(RoundedCornerShape(20.dp)).background(Color.White).widgetClick(onClick = onClick).padding(horizontal = 16.dp, vertical = 9.dp),
     ) { Text(text, style = TextStyle(fontFamily = Inter, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2A1460))) }
 }
 
@@ -346,7 +354,7 @@ private fun MusicGlass(state: HomeState, actions: LauncherActions, modifier: Mod
     GlassSurface(modifier, contentPadding = PaddingValues(horizontal = 24.dp, vertical = 22.dp)) {
         when {
             media != null -> Column(Modifier.fillMaxSize()) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { actions.openMediaApp(media) }) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.widgetClick { actions.openMediaApp(media) }) {
                     AlbumArt(media.art, 86.dp)
                     Spacer(Modifier.width(16.dp))
                     Column {
@@ -366,7 +374,7 @@ private fun MusicGlass(state: HomeState, actions: LauncherActions, modifier: Mod
                 Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     RoundIcon(Icons.Rounded.SkipPrevious, "Anterior", 26.dp, actions::mediaPrevious)
                     Spacer(Modifier.width(26.dp))
-                    Box(Modifier.size(52.dp).clip(CircleShape).background(Color.White).clickable(onClick = actions::mediaPlayPause), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(52.dp).clip(CircleShape).background(Color.White).widgetClick(onClick = actions::mediaPlayPause), contentAlignment = Alignment.Center) {
                         Icon(if (media.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (media.playing) "Pausa" else "Reproducir", tint = Color(0xFF2A1460), modifier = Modifier.size(28.dp))
                     }
                     Spacer(Modifier.width(26.dp))
@@ -380,7 +388,7 @@ private fun MusicGlass(state: HomeState, actions: LauncherActions, modifier: Mod
                 Spacer(Modifier.height(12.dp))
                 PillButton("Activar acceso") { actions.request(Permission.NOTIFICATIONS_ACCESS) }
             }
-            else -> Column(Modifier.fillMaxSize().then(if (state.mediaSupported) Modifier else Modifier.clickable(onClick = actions::openMusicApp))) {
+            else -> Column(Modifier.fillMaxSize().then(if (state.mediaSupported) Modifier else Modifier.widgetClick(onClick = actions::openMusicApp))) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AlbumArt(null, 86.dp)
                     Spacer(Modifier.width(16.dp))
@@ -423,7 +431,7 @@ private fun ProgressLine(fraction: Float) {
 
 @Composable
 private fun RoundIcon(icon: ImageVector, description: String, size: Dp, onClick: () -> Unit) {
-    Box(Modifier.size(size + 18.dp).clip(CircleShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(size + 18.dp).clip(CircleShape).widgetClick(onClick = onClick), contentAlignment = Alignment.Center) {
         Icon(icon, description, Modifier.size(size))
     }
 }
@@ -471,13 +479,13 @@ private fun TimerGlass(state: HomeState, actions: LauncherActions, modifier: Mod
                 Text(formatDuration(remaining), style = t(38.sp, 300, spacing = (-1).sp))
             }
             if (!timer.running && remaining < timer.durationMs) {
-                Box(Modifier.size(36.dp).clip(CircleShape).clickable(onClick = actions::timerReset), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(36.dp).clip(CircleShape).widgetClick(onClick = actions::timerReset), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.Refresh, "Reiniciar", Modifier.size(20.dp))
                 }
             }
             Box(
                 Modifier.size(46.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.22f))
-                    .clickable(onClick = if (timer.running) actions::timerPause else actions::timerStart),
+                    .widgetClick(onClick = if (timer.running) actions::timerPause else actions::timerStart),
                 contentAlignment = Alignment.Center,
             ) { Icon(if (timer.running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (timer.running) "Pausar" else "Empezar", Modifier.size(24.dp)) }
         }

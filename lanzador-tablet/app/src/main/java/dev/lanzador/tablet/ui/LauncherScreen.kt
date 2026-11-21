@@ -40,6 +40,7 @@ import dev.lanzador.tablet.data.LauncherStyle
 import dev.lanzador.tablet.data.WallpaperMode
 import dev.lanzador.tablet.ui.common.Backdrop
 import dev.lanzador.tablet.ui.common.LocalBackdrop
+import dev.lanzador.tablet.ui.common.LocalHomeLongPress
 import dev.lanzador.tablet.ui.common.WallpaperLayer
 import dev.lanzador.tablet.ui.common.rememberBackdrop
 import dev.lanzador.tablet.ui.styles.BentoHome
@@ -114,11 +115,13 @@ fun LauncherScreen(
                             onLongPress = nav.openStylePicker,
                         ),
                 ) {
+                    CompositionLocalProvider(LocalHomeLongPress provides nav.openStylePicker) {
                     when (style) {
                         LauncherStyle.CRISTAL -> CristalHome(state, actions, nav, landscape)
                         LauncherStyle.EXPRESIVO -> ExpresivoHome(state, actions, nav, landscape)
                         LauncherStyle.BENTO -> BentoHome(state, actions, nav, landscape)
                         LauncherStyle.ENFOQUE -> EnfoqueHome(state, actions, nav, landscape)
+                    }
                     }
                 }
 

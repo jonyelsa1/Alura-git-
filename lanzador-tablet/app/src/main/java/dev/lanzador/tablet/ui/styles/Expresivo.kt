@@ -2,7 +2,6 @@ package dev.lanzador.tablet.ui.styles
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.Apps
@@ -67,6 +67,7 @@ import dev.lanzador.tablet.ui.QuickAction
 import dev.lanzador.tablet.ui.common.AppTarget
 import dev.lanzador.tablet.ui.common.ArchShape
 import dev.lanzador.tablet.ui.common.DesignCanvas
+import dev.lanzador.tablet.ui.common.widgetClick
 import dev.lanzador.tablet.ui.common.PolarShape
 import dev.lanzador.tablet.ui.common.ShapedAppIcon
 import dev.lanzador.tablet.ui.common.TileMenuContext
@@ -185,7 +186,7 @@ private fun CookieClock(actions: LauncherActions, modifier: Modifier) {
     val now = rememberNow()
     val is24 = is24Hour()
     Box(
-        modifier.clip(PolarShape(12, 0.055f)).background(Lila).clickable(onClick = actions::openClock),
+        modifier.clip(PolarShape(12, 0.055f)).background(Lila).widgetClick(onClick = actions::openClock),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -221,7 +222,7 @@ private fun DateBlock(state: HomeState, actions: LauncherActions, nav: HomeNav) 
 @Composable
 private fun Pill(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, bg: Color, fg: Color, onClick: () -> Unit) {
     Row(
-        Modifier.height(44.dp).clip(RoundedCornerShape(22.dp)).background(bg).clickable(onClick = onClick).padding(start = 14.dp, end = 18.dp),
+        Modifier.height(44.dp).clip(RoundedCornerShape(22.dp)).background(bg).widgetClick(onClick = onClick).padding(start = 14.dp, end = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, null, Modifier.size(20.dp), tint = fg)
@@ -236,7 +237,7 @@ private fun SunnyWeather(state: HomeState, actions: LauncherActions, nav: HomeNa
     val fg = Color(0xFF3D2A00)
     Box(
         modifier.clip(PolarShape(9, 0.085f)).background(Color(0xFFFFD98A))
-            .clickable(onClick = if (w is WeatherUi.NotSet) nav.openSettings else actions::refreshWeather),
+            .widgetClick(onClick = if (w is WeatherUi.NotSet) nav.openSettings else actions::refreshWeather),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -261,7 +262,7 @@ private fun CalendarArch(state: HomeState, actions: LauncherActions, modifier: M
     val fg = Color(0xFF5C1300)
     val count = state.todayEvents.size
     Column(
-        modifier.clip(ArchShape).background(Color(0xFFFFDAD3)).clickable { actions.openCalendar(null) },
+        modifier.clip(ArchShape).background(Color(0xFFFFDAD3)).widgetClick { actions.openCalendar(null) },
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
     ) {
         Text(formatMonthShort(now).uppercase(), style = e(15.sp, 700, fg, 2.sp))
@@ -275,7 +276,7 @@ private fun CalendarArch(state: HomeState, actions: LauncherActions, modifier: M
         Text(
             label, style = e(13.sp, 600, fg),
             modifier = Modifier.padding(top = 8.dp).clip(RoundedCornerShape(14.dp)).background(fg.copy(alpha = 0.1f))
-                .clickable { if (state.calendar is dev.lanzador.tablet.data.CalendarUi.NoPermission) actions.request(Permission.CALENDAR) else actions.openCalendar(null) }
+                .widgetClick { if (state.calendar is dev.lanzador.tablet.data.CalendarUi.NoPermission) actions.request(Permission.CALENDAR) else actions.openCalendar(null) }
                 .padding(horizontal = 12.dp, vertical = 6.dp),
         )
     }
@@ -294,7 +295,7 @@ private fun TasksCard(state: HomeState, actions: LauncherActions, nav: HomeNav, 
             Icon(Icons.Rounded.CheckCircle, null, Modifier.size(18.dp), tint = brown)
             Spacer(Modifier.width(8.dp))
             Text("PARA HOY", style = e(13.sp, 700, brown, 2.sp), modifier = Modifier.weight(1f))
-            Box(Modifier.size(34.dp).clip(CircleShape).background(Color(0xFFFFE08A)).clickable(onClick = nav.addTask), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(34.dp).clip(CircleShape).background(Color(0xFFFFE08A)).widgetClick(onClick = nav.addTask), contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.Add, "Añadir tarea", Modifier.size(20.dp), tint = Color(0xFF3D2E00))
             }
         }
@@ -339,7 +340,7 @@ private fun BatteryPill(state: HomeState, actions: LauncherActions, modifier: Mo
     val green = Color(0xFF2E6B3C)
     Row(
         modifier.shadow(10.dp, RoundedCornerShape(37.dp), ambientColor = Color(0x33502800), spotColor = Color(0x33502800))
-            .clip(RoundedCornerShape(37.dp)).background(Cream).clickable { actions.quick(QuickAction.BATTERY) }
+            .clip(RoundedCornerShape(37.dp)).background(Cream).widgetClick { actions.quick(QuickAction.BATTERY) }
             .padding(start = 22.dp, end = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -359,7 +360,7 @@ private fun MediaPill(state: HomeState, actions: LauncherActions, modifier: Modi
     val text = Color(0xFFF1E9FF)
     Row(
         modifier.clip(RoundedCornerShape(51.dp)).background(LilaDeep)
-            .clickable {
+            .widgetClick {
                 when {
                     media != null -> actions.openMediaApp(media)
                     !state.mediaSupported -> actions.openMusicApp()
@@ -385,7 +386,7 @@ private fun MediaPill(state: HomeState, actions: LauncherActions, modifier: Modi
             WavyProgress(frac, playing = media?.playing == true, Modifier.padding(top = 8.dp).width(190.dp).height(14.dp))
         }
         Box(
-            Modifier.size(72.dp).clip(PolarShape(4, 0.12f)).background(Lila).clickable(enabled = media != null, onClick = actions::mediaPlayPause),
+            Modifier.size(72.dp).clip(PolarShape(4, 0.12f)).background(Lila).widgetClick(enabled = media != null, onClick = actions::mediaPlayPause),
             contentAlignment = Alignment.Center,
         ) { Icon(if (media?.playing == true) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Reproducir o pausar", Modifier.size(30.dp), tint = LilaDeep) }
     }
@@ -445,7 +446,7 @@ private fun AppGrid(state: HomeState, actions: LauncherActions, nav: HomeNav, co
 private fun SearchBar(actions: LauncherActions, nav: HomeNav, modifier: Modifier) {
     Row(
         modifier.height(76.dp).shadow(14.dp, RoundedCornerShape(38.dp), ambientColor = Color(0x44502800), spotColor = Color(0x44502800))
-            .clip(RoundedCornerShape(38.dp)).background(Color(0xFFFFFAF5)).clickable { nav.openDrawer(true, null) }
+            .clip(RoundedCornerShape(38.dp)).background(Color(0xFFFFFAF5)).widgetClick { nav.openDrawer(true, null) }
             .padding(start = 26.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -454,13 +455,13 @@ private fun SearchBar(actions: LauncherActions, nav: HomeNav, modifier: Modifier
         Text("Buscar apps, contactos y web", style = e(19.sp, 500, Color(0xFF4A4458)), modifier = Modifier.weight(1f))
         SmallRound(Icons.Rounded.Mic, "Buscar por voz", actions::voiceSearch)
         Spacer(Modifier.width(10.dp))
-        SmallRound(Icons.Rounded.Apps, "Todas las apps") { nav.openDrawer(false, null) }
+        SmallRound(Icons.Rounded.Palette, "Cambiar estilo", nav.openStylePicker)
     }
 }
 
 @Composable
 private fun SmallRound(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, onClick: () -> Unit) {
-    Box(Modifier.size(54.dp).clip(CircleShape).background(Color(0xFFEFE6FF)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(54.dp).clip(CircleShape).background(Color(0xFFEFE6FF)).widgetClick(onClick = onClick), contentAlignment = Alignment.Center) {
         Icon(icon, description, Modifier.size(22.dp), tint = LilaDeep)
     }
 }
@@ -472,7 +473,7 @@ private fun DockPill(state: HomeState, actions: LauncherActions, nav: HomeNav, m
         modifier.height(76.dp).clip(RoundedCornerShape(38.dp)).background(Color(0xFFEDE2D6)).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
-        Box(Modifier.size(58.dp).clip(CircleShape).background(LilaDeep).clickable { nav.openDrawer(false, null) }, contentAlignment = Alignment.Center) {
+        Box(Modifier.size(58.dp).clip(CircleShape).background(LilaDeep).widgetClick { nav.openDrawer(false, null) }, contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Apps, "Todas las apps", Modifier.size(26.dp), tint = Color(0xFFF1E9FF))
         }
         apps.forEachIndexed { i, app ->

@@ -21,7 +21,7 @@ Cada estilo cambia también el cajón de apps, los menús y los ajustes.
 
 ## Cambiar de estilo
 
-- **Mantén pulsado el fondo** de la pantalla de inicio: sale el selector con los cuatro estilos. Toca uno y cambia al momento.
+- **Botón de paleta** en cada pantalla (junto al buscador en Cristal y Expresivo, en el dock en Bento, «Estilo» abajo en Enfoque), o **mantén pulsado** el fondo o cualquier widget: sale el selector con los cuatro estilos. Toca uno y cambia al momento.
 - **Un estilo distinto cada día**: interruptor en el selector y en los ajustes. Van por turnos.
 - Desde el selector, **Más ajustes** abre el panel completo: fondo (el del estilo, una foto tuya o el de Android), ciudad del tiempo, minutos del temporizador, permisos y apps ocultas.
 
@@ -31,7 +31,7 @@ Cada estilo cambia también el cajón de apps, los menús y los ajustes.
 | --- | --- |
 | Deslizar hacia arriba | Todas las apps (con etiquetas por categoría, frecuentes y búsqueda) |
 | Deslizar hacia abajo | Notificaciones |
-| Mantener pulsado el fondo | Selector de estilo |
+| Mantener pulsado el fondo o un widget | Selector de estilo |
 | Mantener pulsada una app | Accesos directos, favoritos, dock, orden, información, ocultar, desinstalar |
 | Tocar una tarea / mantenerla | Marcarla hecha / borrarla |
 | Arrastrar por el índice A-Z | Saltar a esa letra (en Enfoque abre el cajón en esa letra) |

@@ -3,7 +3,6 @@ package dev.lanzador.tablet.ui.styles
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +22,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
@@ -65,6 +65,7 @@ import dev.lanzador.tablet.ui.QuickAction
 import dev.lanzador.tablet.ui.common.AppGlyph
 import dev.lanzador.tablet.ui.common.AppTarget
 import dev.lanzador.tablet.ui.common.DesignCanvas
+import dev.lanzador.tablet.ui.common.widgetClick
 import dev.lanzador.tablet.ui.common.LetterRail
 import dev.lanzador.tablet.ui.common.TileMenuContext
 import dev.lanzador.tablet.ui.common.clockHours
@@ -114,7 +115,7 @@ private fun EnfoqueLandscape(state: HomeState, actions: LauncherActions, nav: Ho
         Spacer(Modifier.weight(1f))
         Box(Modifier.widthIn(max = 470.dp).fillMaxHeight()) {
             AppList(state, actions, nav, Modifier.fillMaxWidth())
-            Hints(Modifier.align(Alignment.BottomStart))
+            Hints(nav, Modifier.align(Alignment.BottomStart))
         }
         Spacer(Modifier.width(24.dp))
         Rail(state, nav, Modifier.width(34.dp).fillMaxHeight().padding(vertical = 14.dp))
@@ -132,6 +133,7 @@ private fun EnfoquePortrait(state: HomeState, actions: LauncherActions, nav: Hom
             Spacer(Modifier.height(28.dp))
             AppList(state, actions, nav, Modifier.fillMaxWidth().weight(1f))
             SearchField(nav)
+            Hints(nav, Modifier.padding(top = 14.dp))
         }
         Spacer(Modifier.width(12.dp))
         Rail(state, nav, Modifier.width(34.dp).fillMaxHeight().padding(vertical = 14.dp))
@@ -154,7 +156,7 @@ private fun DotClock(actions: LauncherActions) {
     val is24 = is24Hour()
     val clock = TextStyle(fontFamily = DotoRound, fontWeight = FontWeight.Black, fontSize = 206.sp, lineHeight = 190.sp, letterSpacing = (-4).sp, color = Color.White)
     Row(
-        Modifier.padding(top = 10.dp).offset(x = (-10).dp).clip(RoundedCornerShape(16.dp)).clickable(onClick = actions::openClock),
+        Modifier.padding(top = 10.dp).offset(x = (-10).dp).clip(RoundedCornerShape(16.dp)).widgetClick(onClick = actions::openClock),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(clockHours(now, is24), style = clock)
@@ -170,7 +172,7 @@ private fun DotClock(actions: LauncherActions) {
 private fun InfoRow(icon: ImageVector, text: String, end: String = "", onClick: (() -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
     Column {
         Row(
-            Modifier.fillMaxWidth().height(58.dp).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+            Modifier.fillMaxWidth().height(58.dp).then(if (onClick != null) Modifier.widgetClick(onClick = onClick) else Modifier),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(icon, null, Modifier.size(20.dp), tint = G1)
@@ -227,7 +229,7 @@ private fun InfoRows(state: HomeState, actions: LauncherActions, nav: HomeNav) {
 private fun SearchField(nav: HomeNav) {
     Row(
         Modifier.fillMaxWidth().height(64.dp).clip(RoundedCornerShape(32.dp)).background(Color(0xFF111111))
-            .clickable { nav.openDrawer(true, null) }.padding(horizontal = 22.dp),
+            .widgetClick { nav.openDrawer(true, null) }.padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Rounded.Search, null, Modifier.size(22.dp), tint = Color.White)
@@ -295,8 +297,8 @@ private fun ListItem(app: AppEntry, index: Int, pressed: Int, state: HomeState, 
 }
 
 @Composable
-private fun Hints(modifier: Modifier) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+private fun Hints(nav: HomeNav, modifier: Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(22.dp), verticalAlignment = Alignment.CenterVertically) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.ArrowUpward, null, Modifier.size(15.dp), tint = G2)
             Spacer(Modifier.width(8.dp))
@@ -306,6 +308,14 @@ private fun Hints(modifier: Modifier) {
             Icon(Icons.Rounded.ArrowDownward, null, Modifier.size(15.dp), tint = G2)
             Spacer(Modifier.width(8.dp))
             Text("AVISOS", style = s(13.sp, 500, G2, 1.5.sp))
+        }
+        Row(
+            Modifier.clip(RoundedCornerShape(10.dp)).widgetClick(onClickLabel = "Cambiar estilo", onClick = nav.openStylePicker).padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Rounded.Palette, null, Modifier.size(16.dp), tint = Red)
+            Spacer(Modifier.width(8.dp))
+            Text("ESTILO", style = s(13.sp, 600, Color(0xFFBDBDBD), 1.5.sp))
         }
     }
 }
