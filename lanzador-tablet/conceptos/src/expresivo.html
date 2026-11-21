@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Expresivo</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  body { font-family: 'Roboto Flex', sans-serif; color: #1d1b20; }
+  .wall { background: #f7efe7; }
+  .shape { position: absolute; display: block; overflow: visible; }
+  .w-sun { width: 620px; height: 620px; right: -170px; top: -230px; }
+  .w-sun path { fill: #ffe0cf; }
+  .w-arc { position: absolute; width: 520px; height: 520px; left: -180px; bottom: -300px; border-radius: 50%; background: #c9e8cf; }
+  .w-pill { position: absolute; width: 180px; height: 520px; left: 830px; top: 470px; border-radius: 90px; background: #e7dcff; transform: rotate(38deg); }
+
+  .center { display: grid; place-items: center; text-align: center; }
+  .abs { position: absolute; }
+
+  /* Reloj apilado dentro de una «galleta» de 12 ondas */
+  .clock { left: 40px; top: 52px; width: 352px; height: 352px; }
+  .clock path { fill: #d6c3ff; }
+  .clock-digits { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+                  font-size: 148px; line-height: .8; font-weight: 820; font-stretch: 125%; color: #2a0e6b; letter-spacing: -2px; }
+  .clock-digits span:last-child { color: #6f43e0; }
+
+  .date { left: 428px; top: 70px; }
+  .date .day { font-size: 18px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: #6f43e0; }
+  .date .full { font-size: 50px; font-weight: 760; font-stretch: 112%; letter-spacing: -1px; line-height: 1.05; margin-top: 4px; }
+  .glance { display: flex; gap: 10px; margin-top: 18px; }
+  .pill { height: 44px; padding: 0 18px 0 14px; border-radius: 22px; display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; }
+  .pill .ic { width: 20px; height: 20px; }
+
+  .weather { left: 420px; top: 236px; width: 236px; height: 236px; }
+  .weather path { fill: #ffd98a; }
+  .weather .in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #3d2a00; }
+  .weather .in .ic { width: 40px; height: 40px; stroke-width: 2.2; }
+  .weather .t { font-size: 64px; font-weight: 800; font-stretch: 120%; line-height: 1; letter-spacing: -2px; }
+  .weather .c { font-size: 14px; font-weight: 600; margin-top: 2px; }
+
+  .cal { left: 672px; top: 236px; width: 152px; height: 236px; border-radius: 76px 76px 30px 30px; background: #ffdad3; color: #5c1300;
+         display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .cal .m { font-size: 15px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .cal .d { font-size: 82px; font-weight: 850; font-stretch: 125%; line-height: .95; letter-spacing: -3px; }
+  .cal .e { font-size: 13px; font-weight: 600; margin-top: 8px; padding: 6px 12px; border-radius: 14px; background: rgba(92,19,0,.1); }
+
+  .note { left: 420px; top: 490px; width: 404px; height: 132px; border-radius: 48px 18px 48px 48px; background: #fff8f1; padding: 20px 24px;
+          box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 10px 30px -18px rgba(80,40,0,.35); }
+  .note h4 { font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8a5a00; display: flex; align-items: center; gap: 8px; }
+  .note h4 .ic { width: 16px; height: 16px; }
+  .todo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 550; margin-top: 10px; }
+  .box { width: 22px; height: 22px; border-radius: 7px; border: 2.5px solid #8a5a00; display: grid; place-items: center; flex: none; }
+  .box.ok { background: #8a5a00; color: #fff; }
+  .box .ic { width: 15px; height: 15px; stroke-width: 3.2; }
+  .todo.done span { text-decoration: line-through; opacity: .5; }
+
+  .battery { left: 48px; top: 430px; width: 336px; height: 74px; border-radius: 37px; background: #fff8f1; padding: 0 12px 0 22px; display: flex; align-items: center; gap: 14px;
+             box-shadow: 0 10px 30px -18px rgba(80,40,0,.35); }
+  .battery .ic { width: 24px; height: 24px; color: #2e6b3c; }
+  .bat-track { flex: 1; height: 28px; border-radius: 14px; background: #d9eedd; position: relative; overflow: hidden; }
+  .bat-track i { position: absolute; left: 0; top: 0; bottom: 0; width: 82%; border-radius: 14px; background: #2e6b3c; }
+  .battery b { font-size: 22px; font-weight: 800; font-stretch: 115%; color: #1d4a28; width: 62px; text-align: right; }
+
+  .media { left: 48px; top: 520px; width: 336px; height: 102px; border-radius: 51px; background: #2a0e6b; color: #f1e9ff; padding: 0 14px 0 26px; display: flex; align-items: center; gap: 14px; }
+  .media .txt { flex: 1; }
+  .media .tt { font-size: 18px; font-weight: 700; }
+  .media .ar { font-size: 13px; opacity: .75; margin-top: 2px; }
+  .media svg.wave { display: block; margin-top: 8px; }
+  .media .btn { width: 72px; height: 72px; }
+  .media .btn path { fill: #d6c3ff; }
+  .media .btn .ic { position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; color: #2a0e6b; fill: #2a0e6b; }
+
+  .apps { left: 856px; top: 64px; width: 380px; display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 22px; }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
+  .ico { position: relative; width: 104px; height: 104px; }
+  .ico > svg.shape { inset: 0; width: 100%; height: 100%; }
+  .ico > .g { position: absolute; inset: 0; display: grid; place-items: center; }
+  .ico .ic { width: 40px; height: 40px; stroke-width: 2.1; }
+  .sq { position: absolute; inset: 6px; border-radius: 34px; }
+  .circ { position: absolute; inset: 4px; border-radius: 50%; }
+  .arch { position: absolute; inset: 4px 10px; border-radius: 48px 48px 18px 18px; }
+
+  .search { left: 48px; top: 676px; width: 590px; height: 76px; border-radius: 38px; background: #fffaf5; display: flex; align-items: center; gap: 14px; padding: 0 12px 0 26px;
+            box-shadow: 0 12px 34px -18px rgba(80,40,0,.4); font-size: 19px; font-weight: 500; color: #4a4458; }
+  .search .ic { width: 26px; height: 26px; color: #6f43e0; stroke-width: 2.3; }
+  .search span { flex: 1; }
+  .sbtn { width: 54px; height: 54px; border-radius: 27px; display: grid; place-items: center; background: #efe6ff; }
+  .sbtn .ic { width: 22px; height: 22px; }
+
+  .dock { left: 660px; top: 676px; width: 576px; height: 76px; border-radius: 38px; background: #ede2d6; display: flex; align-items: center; justify-content: space-around; padding: 0 10px; }
+  .dock .d { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; }
+  .dock .d .ic { width: 26px; height: 26px; stroke-width: 2.2; }
+  .dock .d.sq2 { border-radius: 20px; }
+</style>
+</head>
+<body class="dark-ui">
+<div class="screen">
+  <div class="wall layer">
+    <svg class="shape w-sun" viewBox="0 0 100 100" data-n="8" data-a="0.09"><path/></svg>
+    <div class="w-arc"></div>
+    <div class="w-pill"></div>
+  </div>
+
+  <div class="status"><span>10:05</span><span class="r">{{i:bell-off}}{{i:wifi}}{{i:signal}}{{i:battery-full}}<span>82 %</span></span></div>
+
+  <div class="abs clock">
+    <svg class="shape" style="inset:0;width:100%;height:100%" viewBox="0 0 100 100" data-n="12" data-a="0.055"><path/></svg>
+    <div class="clock-digits"><span>10</span><span>05</span></div>
+  </div>
+
+  <div class="abs date">
+    <div class="day">Sábado</div>
+    <div class="full">21 de noviembre</div>
+    <div class="glance">
+      <div class="pill" style="background:#ffe9c2;color:#4a3300">{{i:cloud-sun}} 14° · nubes y claros</div>
+      <div class="pill" style="background:#e9ddff;color:#2a0e6b">{{i:calendar}} Reunión 19:30</div>
+    </div>
+  </div>
+
+  <div class="abs weather">
+    <svg class="shape" style="inset:0;width:100%;height:100%" viewBox="0 0 100 100" data-n="9" data-a="0.085"><path/></svg>
+    <div class="in">{{i:cloud-sun}}<div class="t">14°</div><div class="c">Madrid · 17° / 6°</div></div>
+  </div>
+
+  <div class="abs cal">
+    <div class="m">Nov</div><div class="d">21</div><div class="e">3 eventos</div>
+  </div>
+
+  <div class="abs note">
+    <h4>{{i:list-checks}} Para hoy</h4>
+    <div class="todo done"><div class="box ok">{{i:check}}</div><span>Llamar al taller</span></div>
+    <div class="todo"><div class="box"></div><span>Comprar pan y leche</span></div>
+  </div>
+
+  <div class="abs battery">{{i:battery-charging}}<div class="bat-track"><i></i></div><b>82 %</b></div>
+
+  <div class="abs media">
+    <div class="txt">
+      <div class="tt">Clair de lune</div>
+      <div class="ar">Claude Debussy</div>
+      <svg class="wave" width="190" height="14" viewBox="0 0 190 14">
+        <path id="wave" fill="none" stroke="#d6c3ff" stroke-width="4" stroke-linecap="round"/>
+        <line x1="96" y1="7" x2="186" y2="7" stroke="rgba(214,195,255,.35)" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="btn abs" style="position:relative">
+      <svg class="shape" style="inset:0;width:100%;height:100%" viewBox="0 0 100 100" data-n="4" data-a="0.12"><path/></svg>
+      {{i:pause}}
+    </div>
+  </div>
+
+  <div class="abs apps">
+    <div class="app"><div class="ico"><div class="circ" style="background:#c4eed0"></div><div class="g" style="color:#0b3d1d">{{i:phone}}</div></div>Teléfono</div>
+    <div class="app"><div class="ico"><svg class="shape" viewBox="0 0 100 100" data-n="4" data-a="0.16" style="color:#d3e3fd"><path fill="currentColor"/></svg><div class="g" style="color:#0b2b5e">{{i:globe}}</div></div>Chrome</div>
+    <div class="app"><div class="ico"><svg class="shape" viewBox="0 0 100 100" data-n="9" data-a="0.09" style="color:#ffb899"><path fill="currentColor"/></svg><div class="g" style="color:#5c1a00">{{i:sparkles}}</div></div>Claude</div>
+    <div class="app"><div class="ico"><div class="sq" style="background:#e9ddff"></div><div class="g" style="color:#2a0e6b">{{i:book-open}}</div></div>JW Library</div>
+    <div class="app"><div class="ico"><div class="arch" style="background:#ffe08a"></div><div class="g" style="color:#3d2e00">{{i:hourglass}}</div></div>Temporizador</div>
+    <div class="app"><div class="ico"><svg class="shape" viewBox="0 0 100 100" data-n="8" data-a="0.08" style="color:#ffc2d6"><path fill="currentColor"/></svg><div class="g" style="color:#5b1131">{{i:image}}</div></div>Fotos</div>
+    <div class="app"><div class="ico"><svg class="shape" viewBox="0 0 100 100" data-n="5" data-a="0.11" style="color:#ffdad6"><path fill="currentColor"/></svg><div class="g" style="color:#690005">{{i:play}}</div></div>YouTube</div>
+    <div class="app"><div class="ico"><svg class="shape" viewBox="0 0 100 100" data-n="6" data-a="0.09" style="color:#c2f0e6"><path fill="currentColor"/></svg><div class="g" style="color:#003731">{{i:map}}</div></div>Mapas</div>
+    <div class="app"><div class="ico"><div class="sq" style="background:#e3e1ec"></div><div class="g" style="color:#1b1b21">{{i:settings}}</div></div>Ajustes</div>
+  </div>
+
+  <div class="abs search">{{i:search}}<span>Buscar apps, contactos y web</span><div class="sbtn">{{i:mic}}</div><div class="sbtn">{{i:scan-line}}</div></div>
+
+  <div class="abs dock">
+    <div class="d" style="background:#2a0e6b;color:#f1e9ff">{{i:layout-grid}}</div>
+    <div class="d" style="background:#c4eed0;color:#0b3d1d">{{i:message-square}}</div>
+    <div class="d sq2" style="background:#d3e3fd;color:#0b2b5e">{{i:mail}}</div>
+    <div class="d" style="background:#ffdbcf;color:#5c1a00">{{i:camera}}</div>
+    <div class="d sq2" style="background:#ffe08a;color:#3d2e00">{{i:sticky-note}}</div>
+    <div class="d" style="background:#e9ddff;color:#2a0e6b">{{i:music}}</div>
+    <div class="d sq2" style="background:#c2f0e6;color:#003731">{{i:calendar}}</div>
+  </div>
+
+  <div class="handle"></div>
+</div>
+<script>
+  // Formas de Material 3 Expressive: r(θ) = R·(1 + a·cos(nθ))
+  document.querySelectorAll('svg[data-n] path').forEach((p) => {
+    const svg = p.ownerSVGElement, n = +svg.dataset.n, a = +svg.dataset.a;
+    const R = 50 / (1 + a), pts = [];
+    for (let i = 0; i <= 720; i++) {
+      const t = (i / 720) * Math.PI * 2 - Math.PI / 2;
+      const r = R * (1 + a * Math.cos(n * t));
+      pts.push((50 + r * Math.cos(t)).toFixed(2) + ',' + (50 + r * Math.sin(t)).toFixed(2));
+    }
+    p.setAttribute('d', 'M' + pts.join('L') + 'Z');
+  });
+  // Barra de progreso ondulada (hasta el 50 %)
+  const w = document.getElementById('wave'); let d = 'M4,7';
+  for (let x = 4; x <= 92; x += 1) d += ` L${x},${(7 + 3.6 * Math.sin((x - 4) / 5)).toFixed(2)}`;
+  w.setAttribute('d', d);
+</script>
+</body>
+</html>

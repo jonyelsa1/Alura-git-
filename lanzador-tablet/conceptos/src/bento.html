@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Bento</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  :root { --amber: #ffb547; --lila: #b9a6ff; --txt: #f4f0ff; --mut: #a99fc4; }
+  body { color: var(--txt); }
+  .wall { background: radial-gradient(70% 80% at 12% 0%, #3a1f78 0%, rgba(58,31,120,0) 60%),
+                      radial-gradient(60% 70% at 100% 100%, #5a2a14 0%, rgba(90,42,20,0) 60%),
+                      radial-gradient(50% 60% at 70% 30%, #1f2a6b 0%, rgba(31,42,107,0) 70%),
+                      #0c0818; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(50px); }
+  .b1 { width: 420px; height: 420px; left: 140px; top: 60px; background: #6d3df5; opacity: .55; }
+  .b2 { width: 360px; height: 360px; left: 820px; top: 430px; background: #ff8a2b; opacity: .38; }
+  .b3 { width: 300px; height: 300px; left: 980px; top: 20px; background: #2f8cff; opacity: .35; }
+
+  .grid { position: absolute; left: 32px; top: 46px; width: 1216px; height: 630px; display: grid;
+          grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(4, 1fr); gap: 14px; }
+  .tile { position: relative; border-radius: 28px; overflow: hidden; padding: 20px 22px;
+          background: linear-gradient(160deg, rgba(40,30,66,.62), rgba(20,14,36,.58));
+          backdrop-filter: blur(30px) saturate(150%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 0 0 1px rgba(255,255,255,.07), 0 24px 50px -30px rgba(0,0,0,.8); }
+  .k { font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: var(--mut); display: flex; align-items: center; gap: 7px; }
+  .k .ic { width: 15px; height: 15px; }
+  .num { font-family: 'Outfit V', sans-serif; }
+
+  .hero { grid-column: 1 / 4; grid-row: 1 / 3; padding: 26px 30px; }
+  .hero .time { font-family: 'Outfit V'; font-size: 128px; font-weight: 250; line-height: .9; letter-spacing: -6px; margin-top: 4px; }
+  .hero .time span { color: var(--amber); }
+  .hero .date { font-size: 22px; font-weight: 500; color: #ddd5f5; margin-top: 8px; }
+  .next { position: absolute; left: 30px; right: 30px; bottom: 22px; display: flex; align-items: center; gap: 14px; padding: 12px 14px 12px 12px; border-radius: 20px; background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+  .next .sq { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: rgba(255,181,71,.16); color: var(--amber); }
+  .next .sq .ic { width: 22px; height: 22px; }
+  .next b { font-size: 16px; font-weight: 650; display: block; }
+  .next small { font-size: 13px; color: var(--mut); }
+  .next .cd { margin-left: auto; padding: 8px 14px; border-radius: 14px; background: var(--amber); color: #2b1600; font-size: 14px; font-weight: 700; }
+
+  .weather { grid-column: 4 / 6; grid-row: 1; display: flex; gap: 18px; }
+  .weather .l { width: 120px; flex: none; }
+  .weather .t { font-family: 'Outfit V'; font-size: 54px; font-weight: 300; line-height: 1; margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+  .weather .t .ic { width: 30px; height: 30px; color: var(--amber); }
+  .weather .s { font-size: 13px; color: var(--mut); margin-top: 6px; }
+  .chart { flex: 1; position: relative; }
+  .chart svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .hrs { position: absolute; left: 0; right: 0; bottom: -2px; display: flex; justify-content: space-between; font-size: 11px; color: var(--mut); }
+
+  .focus { grid-column: 6; grid-row: 1 / 3; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .ring { position: relative; width: 140px; height: 140px; margin-top: 18px; border-radius: 50%; background: conic-gradient(var(--amber) 0 62%, rgba(255,255,255,.1) 0); }
+  .ring::before { content: ''; position: absolute; inset: 11px; border-radius: 50%; background: #1a1230; }
+  .ring .in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring .in b { font-family: 'Outfit V'; font-size: 34px; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .ring .in small { font-size: 12px; color: var(--mut); }
+  .fbtns { display: flex; gap: 10px; margin-top: 22px; }
+  .fb { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: rgba(255,255,255,.08); }
+  .fb.p { background: var(--amber); color: #2b1600; }
+  .fb .ic { width: 20px; height: 20px; }
+  .fb.p .ic { fill: currentColor; }
+
+  .photo { grid-column: 4 / 6; grid-row: 2; padding: 0; }
+  .photo svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .photo .cap { position: absolute; left: 20px; bottom: 16px; }
+  .photo .cap b { display: block; font-size: 17px; font-weight: 650; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+  .photo .cap small { font-size: 13px; color: #f1e7ff; opacity: .9; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+  .photo .tag { position: absolute; right: 16px; top: 14px; padding: 6px 12px; border-radius: 12px; background: rgba(12,8,24,.45); backdrop-filter: blur(10px); font-size: 12px; font-weight: 600; }
+
+  .favs { grid-column: 1 / 3; grid-row: 3 / 5; }
+  .ag { display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 20px; margin-top: 20px; }
+  .more { position: absolute; left: 22px; right: 22px; bottom: 18px; display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.07); font-size: 14px; font-weight: 600; color: var(--lila); }
+  .more .ic { width: 18px; height: 18px; }
+  .a { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: #e9e3fb; white-space: nowrap; }
+  .ai { width: 60px; height: 60px; border-radius: 19px; display: grid; place-items: center; color: #fff; background: linear-gradient(150deg, var(--c1), var(--c2));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 10px 20px -10px var(--c2); }
+  .ai .ic { width: 27px; height: 27px; stroke-width: 2; }
+
+  .toggles { grid-column: 3; grid-row: 3 / 5; }
+  .tg { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px; margin-top: 16px; justify-items: center; }
+  .t1 { display: flex; flex-direction: column; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: var(--mut); }
+  .t1 .o { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.08); color: #e9e3fb; }
+  .t1.on .o { background: var(--amber); color: #2b1600; }
+  .t1.on { color: #f4f0ff; }
+  .t1 .ic { width: 21px; height: 21px; }
+
+  .notes { grid-column: 4 / 6; grid-row: 3 / 5; }
+  .it { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,.07); font-size: 16px; font-weight: 500; }
+  .it:first-of-type { margin-top: 8px; }
+  .cb { width: 22px; height: 22px; border-radius: 7px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.3); display: grid; place-items: center; flex: none; }
+  .cb.ok { background: var(--lila); box-shadow: none; color: #1a1230; }
+  .cb .ic { width: 15px; height: 15px; stroke-width: 3.2; }
+  .it.done span { color: var(--mut); text-decoration: line-through; }
+  .it.add { color: var(--mut); border: 0; }
+  .it.add .ic { width: 20px; height: 20px; }
+
+  .batt { grid-column: 6; grid-row: 3; display: flex; flex-direction: column; justify-content: space-between; }
+  .br { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+  .br .ic { width: 17px; height: 17px; color: var(--mut); }
+  .bt { flex: 1; height: 8px; border-radius: 4px; background: rgba(255,255,255,.1); position: relative; }
+  .bt i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: #7cf0a8; }
+
+  .music { grid-column: 6; grid-row: 4; display: flex; flex-direction: column; justify-content: space-between; }
+  .mt { display: flex; gap: 10px; align-items: center; }
+  .art { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #312e81, #7c3aed 55%, #ec4899); flex: none; display: grid; place-items: center; }
+  .art .ic { width: 20px; height: 20px; color: #fff; }
+  .mt b { font-size: 14px; font-weight: 650; display: block; }
+  .mt small { font-size: 12px; color: var(--mut); }
+  .mc { display: flex; justify-content: space-between; align-items: center; color: #e9e3fb; }
+  .mc .ic { width: 20px; height: 20px; }
+  .mc .pp { width: 40px; height: 40px; border-radius: 50%; background: #fff; color: #1a1230; display: grid; place-items: center; }
+  .mc .pp .ic { fill: currentColor; width: 18px; height: 18px; }
+
+  .dock { position: absolute; left: 50%; transform: translateX(-50%); top: 692px; height: 78px; padding: 0 12px; border-radius: 30px; display: flex; align-items: center; gap: 12px;
+          background: linear-gradient(160deg, rgba(48,36,78,.66), rgba(22,16,40,.62)); backdrop-filter: blur(30px) saturate(150%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.08), 0 24px 50px -24px rgba(0,0,0,.8); }
+  .ds { width: 300px; height: 54px; border-radius: 20px; background: rgba(255,255,255,.07); display: flex; align-items: center; gap: 10px; padding: 0 16px; font-size: 15px; color: var(--mut); }
+  .ds .ic { width: 20px; height: 20px; color: #e9e3fb; }
+  .ds kbd { margin-left: auto; font-family: inherit; font-size: 12px; padding: 3px 8px; border-radius: 8px; background: rgba(255,255,255,.08); }
+  .dock .ai { width: 54px; height: 54px; border-radius: 17px; }
+  .dock .ai .ic { width: 25px; height: 25px; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="wall layer"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="grain"></div></div>
+
+  <div class="status"><span>10:05</span><span class="r">{{i:bell-off}}{{i:wifi}}{{i:signal}}{{i:battery-full}}<span>82 %</span></span></div>
+
+  <div class="grid">
+    <div class="tile hero">
+      <div class="k">Buenos días</div>
+      <div class="time">10<span>:</span>05</div>
+      <div class="date">Sábado, 21 de noviembre</div>
+      <div class="next">
+        <div class="sq">{{i:calendar}}</div>
+        <div><b>Reunión</b><small>19:30 · Salón del barrio</small></div>
+        <div class="cd">en 9 h 25 min</div>
+      </div>
+    </div>
+
+    <div class="tile weather">
+      <div class="l">
+        <div class="k">{{i:map-pin}} Madrid</div>
+        <div class="t num">14°{{i:cloud-sun}}</div>
+        <div class="s">Nubes y claros<br>Máx 17° · Mín 6°</div>
+      </div>
+      <div class="chart">
+        <svg viewBox="0 0 240 100" preserveAspectRatio="none">
+          <defs><linearGradient id="fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffb547" stop-opacity=".45"/><stop offset="1" stop-color="#ffb547" stop-opacity="0"/></linearGradient></defs>
+          <path d="M0,62 C30,50 50,36 80,30 C110,24 130,22 160,34 C190,46 210,62 240,74 L240,86 L0,86 Z" fill="url(#fill)"/>
+          <path d="M0,62 C30,50 50,36 80,30 C110,24 130,22 160,34 C190,46 210,62 240,74" fill="none" stroke="#ffb547" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+          <circle cx="40" cy="47" r="4.5" fill="#fff" stroke="#ffb547" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+        </svg>
+        <div class="hrs"><span>Ahora</span><span>12 h</span><span>14 h</span><span>16 h</span><span>18 h</span></div>
+      </div>
+    </div>
+
+    <div class="tile focus">
+      <div class="k">{{i:hourglass}} Enfoque</div>
+      <div class="ring"><div class="in"><b>15:31</b><small>de 25:00</small></div></div>
+      <div class="fbtns"><div class="fb">{{i:timer-reset}}</div><div class="fb p">{{i:pause}}</div></div>
+    </div>
+
+    <div class="tile photo">
+      <svg viewBox="0 0 396 147" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2a1b5e"/><stop offset=".55" stop-color="#c2477a"/><stop offset="1" stop-color="#ffb06b"/></linearGradient>
+        </defs>
+        <rect width="396" height="147" fill="url(#sky)"/>
+        <circle cx="280" cy="92" r="26" fill="#ffd9a0"/>
+        <path d="M0,110 L60,70 L105,98 L170,52 L235,100 L300,72 L396,112 L396,147 L0,147Z" fill="#4b2a6e"/>
+        <path d="M0,128 L80,96 L150,122 L220,90 L300,124 L396,100 L396,147 L0,147Z" fill="#2a1840"/>
+      </svg>
+      <div class="tag">Recuerdo</div>
+      <div class="cap"><b>Hace un año</b><small>Atardecer en la sierra · 14 fotos</small></div>
+    </div>
+
+    <div class="tile favs">
+      <div class="k">{{i:star}} Favoritos</div>
+      <div class="ag">
+        <div class="a"><div class="ai" style="--c1:#5ee08f;--c2:#1f9d55">{{i:phone}}</div>Teléfono</div>
+        <div class="a"><div class="ai" style="--c1:#6fb1ff;--c2:#2a62e8">{{i:globe}}</div>Chrome</div>
+        <div class="a"><div class="ai" style="--c1:#f2a07f;--c2:#c4552f">{{i:sparkles}}</div>Claude</div>
+        <div class="a"><div class="ai" style="--c1:#a98bf0;--c2:#5b3aa8">{{i:book-open}}</div>JW Library</div>
+        <div class="a"><div class="ai" style="--c1:#ffd27a;--c2:#e08a12">{{i:hourglass}}</div>Temporizador</div>
+        <div class="a"><div class="ai" style="--c1:#ff7a85;--c2:#d0213a">{{i:play}}</div>YouTube</div>
+        <div class="a"><div class="ai" style="--c1:#ff9ccf;--c2:#c42b7f">{{i:image}}</div>Fotos</div>
+        <div class="a"><div class="ai" style="--c1:#aab3c5;--c2:#566078">{{i:settings}}</div>Ajustes</div>
+      </div>
+      <div class="more"><span>Todas las apps · 30</span>{{i:arrow-right}}</div>
+    </div>
+
+    <div class="tile toggles">
+      <div class="k">Rápidos</div>
+      <div class="tg">
+        <div class="t1 on"><div class="o">{{i:wifi}}</div>Wi-Fi</div>
+        <div class="t1 on"><div class="o">{{i:bluetooth}}</div>Bluetooth</div>
+        <div class="t1 on"><div class="o">{{i:bell-off}}</div>Silencio</div>
+        <div class="t1"><div class="o">{{i:moon}}</div>Noche</div>
+        <div class="t1"><div class="o">{{i:flashlight}}</div>Linterna</div>
+        <div class="t1"><div class="o">{{i:rotate-ccw}}</div>Girar</div>
+      </div>
+    </div>
+
+    <div class="tile notes">
+      <div class="k">{{i:list-checks}} Para hoy</div>
+      <div class="it done"><div class="cb ok">{{i:check}}</div><span>Llamar al taller</span></div>
+      <div class="it"><div class="cb"></div><span>Comprar pan y leche</span></div>
+      <div class="it"><div class="cb"></div><span>Preparar la reunión</span></div>
+      <div class="it"><div class="cb"></div><span>Regar las plantas</span></div>
+      <div class="it add">{{i:plus}}<span>Añadir tarea</span></div>
+    </div>
+
+    <div class="tile batt">
+      <div class="k">{{i:battery-medium}} Batería</div>
+      <div class="br">{{i:tablet}}<div class="bt"><i style="width:82%"></i></div>82 %</div>
+      <div class="br">{{i:headphones}}<div class="bt"><i style="width:64%"></i></div>64 %</div>
+    </div>
+
+    <div class="tile music">
+      <div class="mt"><div class="art">{{i:music}}</div><div><b>Clair de lune</b><small>Debussy</small></div></div>
+      <div class="mc">{{i:skip-back}}<div class="pp">{{i:pause}}</div>{{i:skip-forward}}</div>
+    </div>
+  </div>
+
+  <div class="dock">
+    <div class="ds">{{i:search}}<span>Buscar apps y web</span><kbd>/</kbd></div>
+    <div class="ai" style="--c1:#5ee08f;--c2:#1f9d55">{{i:message-square}}</div>
+    <div class="ai" style="--c1:#ff8a8a;--c2:#d0213a">{{i:mail}}</div>
+    <div class="ai" style="--c1:#6fb1ff;--c2:#2a62e8">{{i:calendar}}</div>
+    <div class="ai" style="--c1:#9aa5b8;--c2:#4b5568">{{i:camera}}</div>
+    <div class="ai" style="--c1:#ffd27a;--c2:#e08a12">{{i:sticky-note}}</div>
+    <div class="ai" style="--c1:#f6f2ff;--c2:#b9a6ff;color:#1a1230">{{i:layout-grid}}</div>
+  </div>
+
+  <div class="handle"></div>
+</div>
+</body>
+</html>

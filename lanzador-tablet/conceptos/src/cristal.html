@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cristal</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .wall { background: radial-gradient(120% 95% at 72% 8%, #40207f 0%, #170b3d 46%, #070519 100%); }
+  .glow { position: absolute; border-radius: 50%; filter: blur(70px); }
+  .g1 { width: 680px; height: 680px; right: -160px; top: -220px; background: radial-gradient(circle, #ff3d8b 0%, rgba(255,61,139,0) 66%); }
+  .g2 { width: 760px; height: 760px; left: -260px; top: 230px; background: radial-gradient(circle, #2f6bff 0%, rgba(47,107,255,0) 64%); }
+  .g3 { width: 620px; height: 620px; left: 420px; bottom: -330px; background: radial-gradient(circle, #ff8a3d 0%, rgba(255,138,61,0) 64%); }
+  .orb { position: absolute; border-radius: 50%; box-shadow: 0 50px 90px -20px rgba(0,0,0,.55); }
+  .o1 { width: 380px; height: 380px; left: 905px; top: 250px;
+        background: radial-gradient(circle at 32% 27%, #fff 0%, #ffd6ee 5%, #ff5aa8 20%, #d01c6b 50%, #4a0b45 86%); }
+  .o2 { width: 270px; height: 270px; left: 110px; top: 540px;
+        background: radial-gradient(circle at 30% 28%, #fff 0%, #c8f7ff 5%, #2dd4f0 24%, #1f4fd8 60%, #0a1142 92%); }
+  .o3 { width: 120px; height: 120px; left: 620px; top: 118px;
+        background: radial-gradient(circle at 32% 28%, #fff 0%, #fff4c7 7%, #ffc93d 28%, #f07a12 62%, #6b2205 95%); }
+  .ring { position: absolute; width: 340px; height: 340px; left: 470px; top: 360px; border-radius: 50%;
+          background: conic-gradient(from 200deg, #7c3aed, #ec4899, #f59e0b, #22d3ee, #7c3aed);
+          -webkit-mask: radial-gradient(circle, transparent 57%, #000 58%, #000 71%, transparent 72%);
+          transform: rotate(-18deg) scaleY(.82); filter: saturate(1.2); }
+
+  /* Cristal líquido: desenfoque + saturación + reflejos en el borde */
+  .glass { position: absolute; border-radius: 34px; color: #fff;
+           background: linear-gradient(140deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.07) 42%, rgba(255,255,255,.12) 100%);
+           backdrop-filter: blur(24px) saturate(185%) brightness(1.06);
+           box-shadow: 0 28px 60px -24px rgba(10,0,40,.55),
+                       inset 0 1.5px 1px rgba(255,255,255,.7),
+                       inset 0 -1px 1px rgba(255,255,255,.18),
+                       inset 1px 0 1px rgba(255,255,255,.22);
+           text-shadow: 0 1px 3px rgba(0,0,0,.22); }
+  .glass::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.3px; pointer-events: none;
+           background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(255,255,255,.08) 32%, rgba(255,255,255,0) 58%, rgba(255,255,255,.55) 100%);
+           -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+  .glass::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+           background: radial-gradient(90% 70% at 12% 0%, rgba(255,255,255,.16), rgba(255,255,255,0) 62%); }
+
+  .clock { position: absolute; left: 54px; top: 58px; color: #fff; }
+  .time { font-size: 176px; font-weight: 200; letter-spacing: -8px; line-height: .95;
+          background: linear-gradient(180deg, #fff 35%, rgba(255,255,255,.62)); -webkit-background-clip: text; color: transparent;
+          filter: drop-shadow(0 6px 22px rgba(20,0,60,.35)); }
+  .date { font-size: 25px; font-weight: 500; margin-top: 6px; opacity: .94; text-shadow: 0 2px 8px rgba(0,0,0,.3); }
+  .chips { display: flex; gap: 10px; margin-top: 18px; }
+  .chip { position: relative; height: 40px; padding: 0 16px 0 12px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; border-radius: 20px; }
+  .chip .ic { width: 19px; height: 19px; }
+
+  .search { left: 760px; top: 62px; width: 466px; height: 58px; border-radius: 29px; display: flex; align-items: center; gap: 12px; padding: 0 20px; font-size: 16px; font-weight: 500; }
+  .search span { flex: 1; opacity: .85; }
+  .search .ic { width: 22px; height: 22px; opacity: .95; }
+
+  .weather { left: 760px; top: 136px; width: 466px; height: 200px; padding: 20px 24px; }
+  .w-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .loc { display: flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 600; }
+  .loc .ic { width: 16px; height: 16px; }
+  .cond { font-size: 14px; opacity: .85; margin-top: 4px; }
+  .temp { font-size: 64px; font-weight: 300; line-height: .9; letter-spacing: -2px; display: flex; align-items: center; gap: 10px; }
+  .temp .ic { width: 46px; height: 46px; stroke-width: 1.6; }
+  .hours { display: flex; justify-content: space-between; margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.18); }
+  .h { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; width: 56px; }
+  .h .ic { width: 22px; height: 22px; }
+  .h b { font-size: 15px; font-weight: 600; }
+
+  .agenda { left: 54px; top: 368px; width: 340px; height: 252px; padding: 22px 24px; }
+  .w-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; opacity: .8; }
+  .ev { display: flex; gap: 12px; align-items: stretch; margin-top: 16px; }
+  .bar { width: 4px; border-radius: 2px; }
+  .ev .t { font-size: 13px; opacity: .8; font-variant-numeric: tabular-nums; }
+  .ev .n { font-size: 17px; font-weight: 600; margin-top: 1px; }
+  .tomorrow { position: absolute; left: 24px; right: 24px; bottom: 18px; font-size: 13px; opacity: .75; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.16); }
+
+  .music { left: 410px; top: 368px; width: 342px; height: 252px; padding: 22px 24px; }
+  .m-top { display: flex; gap: 16px; align-items: center; }
+  .art { width: 86px; height: 86px; border-radius: 20px; display: grid; place-items: center; flex: none;
+         background: radial-gradient(circle at 70% 25%, #ff9ad5 0%, transparent 45%), linear-gradient(135deg, #312e81, #7c3aed 55%, #ec4899);
+         box-shadow: 0 10px 24px -8px rgba(0,0,0,.5), inset 0 1px 1px rgba(255,255,255,.4); }
+  .art .ic { width: 34px; height: 34px; stroke-width: 1.6; }
+  .m-title { font-size: 20px; font-weight: 650; }
+  .m-artist { font-size: 14px; opacity: .8; margin-top: 3px; }
+  .prog { margin-top: 22px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.25); position: relative; }
+  .prog i { position: absolute; left: 0; top: 0; bottom: 0; width: 44%; border-radius: 3px; background: #fff; }
+  .prog i::after { content: ''; position: absolute; right: -6px; top: -4px; width: 13px; height: 13px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+  .times { display: flex; justify-content: space-between; font-size: 12px; opacity: .75; margin-top: 7px; font-variant-numeric: tabular-nums; }
+  .ctrl { display: flex; justify-content: center; align-items: center; gap: 34px; margin-top: 8px; }
+  .ctrl .ic { width: 26px; height: 26px; }
+  .play { width: 52px; height: 52px; border-radius: 50%; background: #fff; color: #2a1460; display: grid; place-items: center; box-shadow: 0 8px 20px -6px rgba(0,0,0,.4); }
+  .play .ic { width: 24px; height: 24px; fill: currentColor; }
+
+  .battery { left: 768px; top: 368px; width: 222px; height: 118px; padding: 16px 20px; display: flex; justify-content: space-around; align-items: center; }
+  .ringw { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+  .dial { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; position: relative; }
+  .dial::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#7CFFB2 var(--p), rgba(255,255,255,.2) 0);
+                  -webkit-mask: radial-gradient(circle, transparent 62%, #000 63%); }
+  .dial .ic { width: 22px; height: 22px; }
+
+  .timer { left: 768px; top: 502px; width: 222px; height: 118px; padding: 16px 18px 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .timer .lbl { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; opacity: .85; }
+  .timer .lbl .ic { width: 16px; height: 16px; }
+  .timer .big { font-size: 38px; font-weight: 300; letter-spacing: -1px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .mini-play { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.22); box-shadow: inset 0 1px 1px rgba(255,255,255,.6); }
+  .mini-play .ic { width: 20px; height: 20px; fill: #fff; }
+
+  .icons { position: absolute; left: 1006px; top: 368px; width: 222px; height: 252px; display: grid; grid-template-columns: 1fr 1fr; align-content: space-between; padding: 6px 0; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #fff; font-size: 14px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,.4); }
+
+  .app { position: relative; width: 66px; height: 66px; border-radius: 21px; display: grid; place-items: center; color: #fff;
+         background: linear-gradient(145deg, rgba(255,255,255,.32), rgba(255,255,255,.07) 55%, rgba(255,255,255,.14));
+         backdrop-filter: blur(16px) saturate(180%);
+         box-shadow: inset 0 1.5px 1px rgba(255,255,255,.75), inset 0 -1px 1px rgba(255,255,255,.2), 0 12px 26px -10px rgba(0,0,0,.45); }
+  .app::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.2px;
+         background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(255,255,255,0) 45%, rgba(255,255,255,.5));
+         -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+  .app .ic { width: 29px; height: 29px; stroke-width: 1.8; filter: drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+  .badge { position: absolute; top: -5px; right: -5px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: #ff3b6b; font-size: 12px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+
+  .dots { position: absolute; top: 640px; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; }
+  .dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.45); }
+  .dots i.on { width: 22px; border-radius: 4px; background: #fff; }
+
+  .dock { left: 50%; transform: translateX(-50%); top: 664px; height: 94px; padding: 0 16px; border-radius: 36px; display: flex; align-items: center; gap: 14px; }
+  .dock .sep { width: 1.5px; height: 46px; background: rgba(255,255,255,.3); margin: 0 4px; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="wall layer">
+    <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+    <div class="ring"></div>
+    <div class="orb o3"></div><div class="orb o1"></div><div class="orb o2"></div>
+    <div class="grain"></div>
+  </div>
+
+  <div class="status"><span>10:05</span><span class="r">{{i:bell-off}}{{i:wifi}}{{i:signal}}{{i:battery-full}}<span>82 %</span></span></div>
+
+  <div class="clock">
+    <div class="time">10:05</div>
+    <div class="date">Sábado, 21 de noviembre</div>
+    <div class="chips">
+      <div class="glass chip">{{i:cloud-sun}} 14° Madrid</div>
+      <div class="glass chip">{{i:calendar}} Reunión · 19:30</div>
+    </div>
+  </div>
+
+  <div class="glass search">{{i:search}}<span>Buscar apps, ajustes o en la web</span>{{i:mic}}</div>
+
+  <div class="glass weather">
+    <div class="w-top">
+      <div>
+        <div class="loc">Madrid {{i:map-pin}}</div>
+        <div class="cond">Parcialmente nuboso</div>
+        <div class="cond">Máx 17° · Mín 6°</div>
+      </div>
+      <div class="temp">{{i:cloud-sun}}14°</div>
+    </div>
+    <div class="hours">
+      <div class="h">11 h{{i:sun}}<b>15°</b></div>
+      <div class="h">12 h{{i:sun}}<b>16°</b></div>
+      <div class="h">13 h{{i:cloud-sun}}<b>17°</b></div>
+      <div class="h">14 h{{i:cloud-sun}}<b>17°</b></div>
+      <div class="h">15 h{{i:cloud}}<b>16°</b></div>
+      <div class="h">16 h{{i:cloud-drizzle}}<b>14°</b></div>
+      <div class="h">17 h{{i:cloud-rain}}<b>12°</b></div>
+    </div>
+  </div>
+
+  <div class="glass agenda">
+    <div class="w-head"><span>Hoy</span><span>sáb 21</span></div>
+    <div class="ev"><div class="bar" style="background:#ffd166"></div><div><div class="t">12:30</div><div class="n">Llamar al taller</div></div></div>
+    <div class="ev"><div class="bar" style="background:#7cffb2"></div><div><div class="t">17:00</div><div class="n">Compra semanal</div></div></div>
+    <div class="ev"><div class="bar" style="background:#8ab4ff"></div><div><div class="t">19:30</div><div class="n">Reunión</div></div></div>
+    <div class="tomorrow">Mañana · 10:00 Desayuno con Marta</div>
+  </div>
+
+  <div class="glass music">
+    <div class="m-top">
+      <div class="art">{{i:music}}</div>
+      <div><div class="m-title">Clair de lune</div><div class="m-artist">Claude Debussy</div></div>
+    </div>
+    <div class="prog"><i></i></div>
+    <div class="times"><span>2:14</span><span>5:02</span></div>
+    <div class="ctrl">{{i:skip-back}}<div class="play">{{i:pause}}</div>{{i:skip-forward}}</div>
+  </div>
+
+  <div class="glass battery">
+    <div class="ringw"><div class="dial" style="--p:82%">{{i:tablet}}</div>82 %</div>
+    <div class="ringw"><div class="dial" style="--p:64%">{{i:headphones}}</div>64 %</div>
+  </div>
+
+  <div class="glass timer">
+    <div><div class="lbl">{{i:hourglass}} Enfoque</div><div class="big">25:00</div></div>
+    <div class="mini-play">{{i:play}}</div>
+  </div>
+
+  <div class="icons">
+    <div class="cell"><div class="app">{{i:image}}</div>Fotos</div>
+    <div class="cell"><div class="app">{{i:play}}</div>YouTube</div>
+    <div class="cell"><div class="app">{{i:calendar}}</div>Calendario</div>
+    <div class="cell"><div class="app">{{i:map}}</div>Mapas</div>
+  </div>
+
+  <div class="dots"><i class="on"></i><i></i><i></i></div>
+
+  <div class="glass dock">
+    <div class="app">{{i:phone}}</div>
+    <div class="app">{{i:globe}}</div>
+    <div class="app">{{i:sparkles}}</div>
+    <div class="app">{{i:book-open}}</div>
+    <div class="app">{{i:hourglass}}</div>
+    <div class="app">{{i:mail}}<span class="badge">3</span></div>
+    <div class="app">{{i:camera}}</div>
+    <div class="app">{{i:settings}}</div>
+    <div class="sep"></div>
+    <div class="app">{{i:layout-grid}}</div>
+  </div>
+
+  <div class="handle"></div>
+</div>
+</body>
+</html>

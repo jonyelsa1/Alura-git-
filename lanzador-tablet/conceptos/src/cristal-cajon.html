@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cristal: cajón</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .wall { background: radial-gradient(120% 95% at 72% 8%, #40207f 0%, #170b3d 46%, #070519 100%); }
+  .glow { position: absolute; border-radius: 50%; filter: blur(70px); }
+  .g1 { width: 680px; height: 680px; right: -160px; top: -220px; background: radial-gradient(circle, #ff3d8b 0%, rgba(255,61,139,0) 66%); }
+  .g2 { width: 760px; height: 760px; left: -260px; top: 230px; background: radial-gradient(circle, #2f6bff 0%, rgba(47,107,255,0) 64%); }
+  .g3 { width: 620px; height: 620px; left: 420px; bottom: -330px; background: radial-gradient(circle, #ff8a3d 0%, rgba(255,138,61,0) 64%); }
+  .orb { position: absolute; border-radius: 50%; }
+  .o1 { width: 380px; height: 380px; left: 905px; top: 250px; background: radial-gradient(circle at 32% 27%, #fff 0%, #ffd6ee 5%, #ff5aa8 20%, #d01c6b 50%, #4a0b45 86%); }
+  .o2 { width: 270px; height: 270px; left: 110px; top: 540px; background: radial-gradient(circle at 30% 28%, #fff 0%, #c8f7ff 5%, #2dd4f0 24%, #1f4fd8 60%, #0a1142 92%); }
+  .o3 { width: 120px; height: 120px; left: 620px; top: 118px; background: radial-gradient(circle at 32% 28%, #fff 0%, #fff4c7 7%, #ffc93d 28%, #f07a12 62%, #6b2205 95%); }
+
+  /* Hoja esmerilada a pantalla completa */
+  .sheet { position: absolute; inset: 0; backdrop-filter: blur(46px) saturate(170%); background: linear-gradient(180deg, rgba(18,8,48,.38), rgba(18,8,48,.52)); }
+
+  .glass { position: relative; color: #fff;
+           background: linear-gradient(140deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.07) 42%, rgba(255,255,255,.12) 100%);
+           backdrop-filter: blur(20px) saturate(180%);
+           box-shadow: 0 20px 50px -24px rgba(10,0,40,.6), inset 0 1.5px 1px rgba(255,255,255,.7), inset 0 -1px 1px rgba(255,255,255,.18); }
+  .glass::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.3px; pointer-events: none;
+           background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(255,255,255,.08) 32%, rgba(255,255,255,0) 58%, rgba(255,255,255,.5));
+           -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+
+  .top { position: absolute; left: 80px; right: 80px; top: 48px; display: flex; align-items: center; gap: 16px; color: #fff; }
+  .search { flex: 1; height: 62px; border-radius: 31px; display: flex; align-items: center; gap: 14px; padding: 0 22px; font-size: 18px; font-weight: 500; }
+  .search .typed { flex: 1; }
+  .search .caret { display: inline-block; width: 2px; height: 24px; background: #fff; vertical-align: -5px; margin-left: 1px; }
+  .search .hint { font-size: 14px; opacity: .65; }
+  .search .ic { width: 23px; height: 23px; }
+  .close { width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center; }
+
+  .chips { position: absolute; left: 80px; top: 128px; display: flex; gap: 10px; }
+  .chip { height: 38px; padding: 0 18px; border-radius: 19px; display: flex; align-items: center; font-size: 15px; font-weight: 600; color: #fff; }
+  .chip.on { background: #fff; color: #2a1460; box-shadow: 0 8px 20px -8px rgba(0,0,0,.5); }
+  .chip.on::before { display: none; }
+
+  .label { position: absolute; left: 82px; font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(255,255,255,.7); }
+
+  .row { position: absolute; left: 70px; right: 110px; display: grid; grid-template-columns: repeat(10, 1fr); row-gap: 18px; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 9px; color: #fff; font-size: 13.5px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,.35); white-space: nowrap; }
+
+  /* Cristal tintado: cada app conserva un toque de su color para reconocerla rápido */
+  .app { position: relative; width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; color: #fff;
+         background: radial-gradient(120% 120% at 30% 15%, color-mix(in srgb, var(--c) 70%, white 10%) 0%, color-mix(in srgb, var(--c) 35%, transparent) 60%, rgba(255,255,255,.08) 100%);
+         backdrop-filter: blur(14px) saturate(180%);
+         box-shadow: inset 0 1.5px 1px rgba(255,255,255,.7), inset 0 -1px 1px rgba(255,255,255,.18), 0 12px 24px -12px rgba(0,0,0,.55); }
+  .app::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.2px;
+         background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(255,255,255,0) 45%, rgba(255,255,255,.45));
+         -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+  .app .ic { width: 28px; height: 28px; stroke-width: 1.8; filter: drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+  .big .app { width: 76px; height: 76px; border-radius: 24px; }
+  .big .app .ic { width: 33px; height: 33px; }
+  .big .cell { font-size: 14.5px; }
+
+  .rail { position: absolute; right: 30px; top: 190px; bottom: 40px; width: 40px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; font-size: 12px; font-weight: 700; color: rgba(255,255,255,.75); }
+  .rail b { color: #2a1460; background: #fff; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; }
+  .hr { position: absolute; left: 82px; right: 120px; top: 330px; height: 1px; background: rgba(255,255,255,.16); }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="wall layer">
+    <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+    <div class="orb o3"></div><div class="orb o1"></div><div class="orb o2"></div>
+  </div>
+  <div class="sheet"></div>
+  <div class="grain"></div>
+
+  <div class="status"><span>10:05</span><span class="r">{{i:bell-off}}{{i:wifi}}{{i:signal}}{{i:battery-full}}<span>82 %</span></span></div>
+
+  <div class="top">
+    <div class="glass search">{{i:search}}<span class="typed"><span class="caret"></span><span style="opacity:.6;margin-left:6px">Buscar en 30 apps</span></span><span class="hint">Pulsa Intro para buscar en la web</span>{{i:mic}}</div>
+    <div class="glass close">{{i:x}}</div>
+  </div>
+
+  <div class="chips">
+    <div class="chip glass on">Todas</div>
+    <div class="chip glass">Favoritas</div>
+    <div class="chip glass">Comunicación</div>
+    <div class="chip glass">Lectura</div>
+    <div class="chip glass">Herramientas</div>
+    <div class="chip glass">Ocio</div>
+    <div class="chip glass">+ Etiqueta</div>
+  </div>
+
+  <div class="label" style="top:190px">Sugerencias según la hora</div>
+  <div class="row big" style="top:214px">
+    <div class="cell"><div class="app" style="--c:#d97757">{{i:sparkles}}</div>Claude</div>
+    <div class="cell"><div class="app" style="--c:#34a853">{{i:globe}}</div>Chrome</div>
+    <div class="cell"><div class="app" style="--c:#6b4fa0">{{i:book-open}}</div>JW Library</div>
+    <div class="cell"><div class="app" style="--c:#c99a5b">{{i:hourglass}}</div>Temporizador</div>
+    <div class="cell"><div class="app" style="--c:#e53935">{{i:play}}</div>YouTube</div>
+    <div class="cell"><div class="app" style="--c:#2e7d32">{{i:message-square}}</div>WhatsApp</div>
+  </div>
+
+  <div class="hr"></div>
+  <div class="label" style="top:350px">Todas · A–Z</div>
+  <div class="row" style="top:376px">
+    <div class="cell"><div class="app" style="--c:#78909c">{{i:settings}}</div>Ajustes</div>
+    <div class="cell"><div class="app" style="--c:#1e88e5">{{i:folder}}</div>Archivos</div>
+    <div class="cell"><div class="app" style="--c:#00897b">{{i:activity}}</div>Bienestar</div>
+    <div class="cell"><div class="app" style="--c:#5e35b1">{{i:calculator}}</div>Calculadora</div>
+    <div class="cell"><div class="app" style="--c:#1976d2">{{i:calendar}}</div>Calendario</div>
+    <div class="cell"><div class="app" style="--c:#546e7a">{{i:camera}}</div>Cámara</div>
+    <div class="cell"><div class="app" style="--c:#34a853">{{i:globe}}</div>Chrome</div>
+    <div class="cell"><div class="app" style="--c:#d97757">{{i:sparkles}}</div>Claude</div>
+    <div class="cell"><div class="app" style="--c:#3949ab">{{i:users}}</div>Contactos</div>
+    <div class="cell"><div class="app" style="--c:#f9a825">{{i:hard-drive}}</div>Drive</div>
+
+    <div class="cell"><div class="app" style="--c:#7cb342">{{i:graduation-cap}}</div>Duolingo</div>
+    <div class="cell"><div class="app" style="--c:#e53935">{{i:image}}</div>Fotos</div>
+    <div class="cell"><div class="app" style="--c:#d32f2f">{{i:mail}}</div>Gmail</div>
+    <div class="cell"><div class="app" style="--c:#6b4fa0">{{i:book-open}}</div>JW Library</div>
+    <div class="cell"><div class="app" style="--c:#f9a825">{{i:lightbulb}}</div>Keep</div>
+    <div class="cell"><div class="app" style="--c:#455a64">{{i:book}}</div>Kindle</div>
+    <div class="cell"><div class="app" style="--c:#00897b">{{i:map}}</div>Mapas</div>
+    <div class="cell"><div class="app" style="--c:#1565c0">{{i:message-circle}}</div>Mensajes</div>
+    <div class="cell"><div class="app" style="--c:#ef6c00">{{i:music}}</div>Música</div>
+    <div class="cell"><div class="app" style="--c:#8d6e63">{{i:sticky-note}}</div>Notas</div>
+
+    <div class="cell"><div class="app" style="--c:#00acc1">{{i:shopping-bag}}</div>Play Store</div>
+    <div class="cell"><div class="app" style="--c:#ad1457">{{i:radio}}</div>Radio</div>
+    <div class="cell"><div class="app" style="--c:#607d8b">{{i:alarm-clock}}</div>Reloj</div>
+    <div class="cell"><div class="app" style="--c:#2e7d32">{{i:audio-lines}}</div>Spotify</div>
+    <div class="cell"><div class="app" style="--c:#43a047">{{i:phone}}</div>Teléfono</div>
+    <div class="cell"><div class="app" style="--c:#c99a5b">{{i:hourglass}}</div>Temporizador</div>
+    <div class="cell"><div class="app" style="--c:#1e88e5">{{i:languages}}</div>Traductor</div>
+    <div class="cell"><div class="app" style="--c:#2e7d32">{{i:message-square}}</div>WhatsApp</div>
+    <div class="cell"><div class="app" style="--c:#c62828">{{i:play}}</div>YouTube</div>
+    <div class="cell"><div class="app" style="--c:#1565c0">{{i:video}}</div>Zoom</div>
+  </div>
+
+  <div class="glass rail"><span>A</span><span>B</span><b>C</b><span>D</span><span>F</span><span>G</span><span>J</span><span>K</span><span>M</span><span>N</span><span>P</span><span>R</span><span>S</span><span>T</span><span>W</span><span>Y</span><span>Z</span></div>
+
+  <div class="handle"></div>
+</div>
+</body>
+</html>
