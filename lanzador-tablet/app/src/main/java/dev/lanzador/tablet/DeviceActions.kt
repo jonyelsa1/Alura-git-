@@ -142,7 +142,7 @@ class DeviceActions(
         when (permission) {
             Permission.CALENDAR -> activity.requestCalendar()
             Permission.PHOTOS -> activity.requestPhotos()
-            Permission.NOTIFICATIONS_ACCESS -> {
+            Permission.NOTIFICATIONS_ACCESS -> if (!BuildConfig.NOTIFICACIONES) openMusicApp() else {
                 val component = ComponentName(activity, NotificationService::class.java)
                 toast("Activa «Lanzador». Si sale bloqueado: Info de la app ▸ ⋮ ▸ Permitir ajustes restringidos")
                 val detail = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -181,6 +181,10 @@ class DeviceActions(
 
     override fun openMediaApp(media: MediaInfo) {
         activity.packageManager.getLaunchIntentForPackage(media.packageName)?.let { start(it) }
+    }
+
+    override fun openMusicApp() {
+        start(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MUSIC))
     }
 
     override fun mediaPlayPause() = NotificationHub.playPause()

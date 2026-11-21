@@ -38,10 +38,20 @@ Cada estilo cambia también el cajón de apps, los menús y los ajustes.
 
 ## Instalar
 
-1. Abre `apk/Lanzador.apk` en la tablet y permite instalar desde esa app.
-2. Pulsa **Inicio** y elige **Lanzador** → **Siempre**. Si no pregunta: *Ajustes → Aplicaciones → Aplicaciones predeterminadas → Aplicación de pantalla de inicio*.
+Hay dos APK en `apk/`, con la misma firma, así que se puede pasar de una a otra sin desinstalar:
 
-Se instala encima de la versión anterior sin perder favoritos: todas las versiones se firman con la misma clave de depuración (`app/firma/debug.keystore`), que no protege nada y no sirve para Google Play.
+| APK | Qué incluye | Play Protect |
+| --- | --- | --- |
+| `Lanzador.apk` (ligera, recomendada) | Todo menos la música que suena y los contadores de avisos | Se instala; como mucho avisa de que la app es desconocida |
+| `Lanzador-completo.apk` | Todo, con lector de notificaciones | La bloquea al instalarla desde un archivo |
+
+Play Protect bloquea por sistema las apps instaladas desde un navegador, una app de mensajería o un gestor de archivos si piden leer SMS, leer notificaciones o usar los servicios de accesibilidad. Es la «protección mejorada contra fraudes» que Google anunció el 7 de febrero de 2024 en su blog de seguridad. La versión completa necesita leer notificaciones para la música, por eso solo puede instalarse con Play Protect desactivado.
+
+1. Abre `apk/Lanzador.apk` en la tablet y permite instalar desde esa app.
+2. Si Play Protect avisa de que no reconoce la app, toca **Más detalles → Instalar de todos modos**.
+3. Pulsa **Inicio** y elige **Lanzador** → **Siempre**. Si no pregunta: *Ajustes → Aplicaciones → Aplicaciones predeterminadas → Aplicación de pantalla de inicio*.
+
+Todas las versiones se firman con la misma clave de depuración (`app/firma/debug.keystore`), que no protege nada y no sirve para Google Play.
 
 ## Permisos
 
@@ -51,7 +61,7 @@ Ninguno es obligatorio; cada widget explica qué le falta y tiene un botón para
 | --- | --- |
 | Calendario | Eventos de hoy y de mañana |
 | Fotos | «Hace un año» en Bento |
-| Acceso a notificaciones | Música que suena (con controles) y contadores de avisos |
+| Acceso a notificaciones (solo versión completa) | Música que suena (con controles) y contadores de avisos |
 | Notificaciones | Aviso cuando termina el temporizador |
 | Internet | Tiempo de Open-Meteo |
 | No molestar | Interruptor «Silencio» de Bento (Android pide confirmarlo aparte) |
@@ -64,8 +74,8 @@ Requisitos: JDK 17 o superior y el SDK de Android (plataforma 35).
 
 ```bash
 echo "sdk.dir=/ruta/al/android-sdk" > local.properties
-./gradlew :app:assembleRelease        # APK en app/build/outputs/apk/release/
-./gradlew :app:testDebugUnitTest      # regenera docs/capturas (Robolectric + Roborazzi)
+./gradlew :app:assembleLigeroRelease :app:assembleCompletoRelease   # APK en app/build/outputs/apk/
+./gradlew :app:testCompletoDebugUnitTest                           # regenera docs/capturas (Robolectric + Roborazzi)
 ```
 
 Las maquetas de diseño originales están en `conceptos/`.

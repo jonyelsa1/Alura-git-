@@ -298,11 +298,18 @@ private fun SettingsContent(state: HomeState, actions: LauncherActions, onClose:
             Section("Permisos")
             PermissionRow("Calendario", "Eventos de hoy y mañana", state.calendar !is CalendarUi.NoPermission) { actions.request(Permission.CALENDAR) }
             PermissionRow("Fotos", "Recuerdos de hace un año (Bento)", state.photos !is PhotoUi.NoPermission) { actions.request(Permission.PHOTOS) }
-            PermissionRow("Música y avisos", "Lo que suena y contadores de notificaciones", state.notificationAccess) { actions.request(Permission.NOTIFICATIONS_ACCESS) }
-            Text(
-                "Si «Música y avisos» aparece bloqueado: Información de la app ▸ menú ⋮ ▸ Permitir ajustes restringidos, y vuelve a intentarlo.",
-                style = MaterialTheme.typography.bodySmall.copy(color = scheme.onSurfaceVariant), modifier = Modifier.padding(top = 6.dp),
-            )
+            if (state.mediaSupported) {
+                PermissionRow("Música y avisos", "Lo que suena y contadores de notificaciones", state.notificationAccess) { actions.request(Permission.NOTIFICATIONS_ACCESS) }
+                Text(
+                    "Si «Música y avisos» aparece bloqueado: Información de la app ▸ menú ⋮ ▸ Permitir ajustes restringidos, y vuelve a intentarlo.",
+                    style = MaterialTheme.typography.bodySmall.copy(color = scheme.onSurfaceVariant), modifier = Modifier.padding(top = 6.dp),
+                )
+            } else {
+                Text(
+                    "Versión ligera: sin lector de notificaciones, así que no muestra la música que suena ni los contadores de avisos. Es lo que permite instalarla sin que Play Protect la bloquee.",
+                    style = MaterialTheme.typography.bodySmall.copy(color = scheme.onSurfaceVariant), modifier = Modifier.padding(top = 6.dp),
+                )
+            }
 
             Section("Apps ocultas")
             if (state.hidden.isEmpty()) {
@@ -328,7 +335,7 @@ private fun SettingsContent(state: HomeState, actions: LauncherActions, onClose:
                 style = MaterialTheme.typography.bodyMedium.copy(color = scheme.onSurfaceVariant),
             )
             Spacer(Modifier.height(24.dp))
-            Text("Lanzador 2.0 · Tiempo de Open-Meteo.com (CC BY 4.0)", style = MaterialTheme.typography.labelMedium.copy(color = scheme.outline))
+            Text("Lanzador ${dev.lanzador.tablet.BuildConfig.VERSION_NAME} · Tiempo de Open-Meteo.com (CC BY 4.0)", style = MaterialTheme.typography.labelMedium.copy(color = scheme.outline))
         }
     }
 }

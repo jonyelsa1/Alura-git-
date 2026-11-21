@@ -562,6 +562,7 @@ private fun Music(state: HomeState, actions: LauncherActions, modifier: Modifier
                 modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable {
                     when {
                         media != null -> actions.openMediaApp(media)
+                        !state.mediaSupported -> actions.openMusicApp()
                         !state.notificationAccess -> actions.request(Permission.NOTIFICATIONS_ACCESS)
                     }
                 },
@@ -569,8 +570,9 @@ private fun Music(state: HomeState, actions: LauncherActions, modifier: Modifier
                 AlbumArt(media?.art, 44.dp, 12.dp)
                 Spacer(Modifier.width(10.dp))
                 Column {
-                    Text(media?.title ?: if (state.notificationAccess) "Nada sonando" else "Música", style = b(14.sp, 650), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(media?.artist ?: if (state.notificationAccess) "—" else "Activar acceso", style = b(12.sp, 500, Mut), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    val ask = state.mediaSupported && !state.notificationAccess
+                    Text(media?.title ?: if (state.mediaSupported && !ask) "Nada sonando" else "Música", style = b(14.sp, 650), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(media?.artist ?: when { ask -> "Activar acceso"; state.mediaSupported -> "—"; else -> "Abrir música" }, style = b(12.sp, 500, Mut), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             if (media != null) {

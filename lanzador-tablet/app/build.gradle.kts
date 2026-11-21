@@ -14,8 +14,8 @@ android {
         applicationId = "dev.lanzador.tablet"
         minSdk = 29
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.0"
+        versionCode = 3
+        versionName = "2.1"
     }
 
     // Clave de depuración del proyecto (no es secreta). Se versiona para que
@@ -42,6 +42,22 @@ android {
         }
     }
 
+    // «ligero»: sin lector de notificaciones, para que Play Protect no bloquee la
+    // instalación desde un archivo. «completo»: con música y contadores de avisos.
+    // Mismo applicationId y firma: se puede pasar de una a otra sin desinstalar.
+    flavorDimensions += "version"
+    productFlavors {
+        create("ligero") {
+            dimension = "version"
+            buildConfigField("boolean", "NOTIFICACIONES", "false")
+        }
+        create("completo") {
+            dimension = "version"
+            versionNameSuffix = "-completo"
+            buildConfigField("boolean", "NOTIFICACIONES", "true")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -49,6 +65,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {

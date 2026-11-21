@@ -362,6 +362,7 @@ private fun MediaPill(state: HomeState, actions: LauncherActions, modifier: Modi
             .clickable {
                 when {
                     media != null -> actions.openMediaApp(media)
+                    !state.mediaSupported -> actions.openMusicApp()
                     !state.notificationAccess -> actions.request(Permission.NOTIFICATIONS_ACCESS)
                 }
             }
@@ -369,9 +370,14 @@ private fun MediaPill(state: HomeState, actions: LauncherActions, modifier: Modi
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(media?.title ?: if (state.notificationAccess) "Nada sonando" else "Música", style = e(18.sp, 700, text), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val ask = state.mediaSupported && !state.notificationAccess
+            Text(media?.title ?: if (state.mediaSupported && !ask) "Nada sonando" else "Música", style = e(18.sp, 700, text), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                media?.artist ?: if (state.notificationAccess) "Pon música en cualquier app" else "Toca para activar el acceso",
+                media?.artist ?: when {
+                    ask -> "Toca para activar el acceso"
+                    state.mediaSupported -> "Pon música en cualquier app"
+                    else -> "Toca para abrir tu app de música"
+                },
                 style = e(13.sp, 500, text.copy(alpha = 0.75f)), maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
             val tick = rememberTicker(media?.playing == true)

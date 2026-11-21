@@ -373,15 +373,22 @@ private fun MusicGlass(state: HomeState, actions: LauncherActions, modifier: Mod
                     RoundIcon(Icons.Rounded.SkipNext, "Siguiente", 26.dp, actions::mediaNext)
                 }
             }
-            !state.notificationAccess -> Column(Modifier.fillMaxSize()) {
+            !state.notificationAccess && state.mediaSupported -> Column(Modifier.fillMaxSize()) {
                 Row(verticalAlignment = Alignment.CenterVertically) { AlbumArt(null, 64.dp); Spacer(Modifier.width(14.dp)); Text("Música", style = t(20.sp, 650)) }
                 Spacer(Modifier.weight(1f))
                 Text("Para ver y controlar lo que suena, activa el acceso a notificaciones.", style = t(14.sp, 500, 0.85f))
                 Spacer(Modifier.height(12.dp))
                 PillButton("Activar acceso") { actions.request(Permission.NOTIFICATIONS_ACCESS) }
             }
-            else -> Column(Modifier.fillMaxSize()) {
-                Row(verticalAlignment = Alignment.CenterVertically) { AlbumArt(null, 86.dp); Spacer(Modifier.width(16.dp)); Column { Text("Nada sonando", style = t(20.sp, 650)); Text("Pon música en cualquier app", style = t(14.sp, 500, 0.8f)) } }
+            else -> Column(Modifier.fillMaxSize().then(if (state.mediaSupported) Modifier else Modifier.clickable(onClick = actions::openMusicApp))) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AlbumArt(null, 86.dp)
+                    Spacer(Modifier.width(16.dp))
+                    Column {
+                        Text(if (state.mediaSupported) "Nada sonando" else "Música", style = t(20.sp, 650))
+                        Text(if (state.mediaSupported) "Pon música en cualquier app" else "Toca para abrir tu app de música", style = t(14.sp, 500, 0.8f))
+                    }
+                }
                 Spacer(Modifier.weight(1f))
                 ProgressLine(0f)
             }

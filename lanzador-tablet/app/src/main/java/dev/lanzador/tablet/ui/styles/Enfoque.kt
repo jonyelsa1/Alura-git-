@@ -216,6 +216,7 @@ private fun InfoRows(state: HomeState, actions: LauncherActions, nav: HomeNav) {
                 Spacer(Modifier.width(10.dp))
                 Box(Modifier.size(9.dp).clip(CircleShape).background(if (media.playing) Red else G2))
             }
+            !state.mediaSupported -> InfoRow(Icons.Rounded.MusicNote, "Música", "Abrir", actions::openMusicApp)
             !state.notificationAccess -> InfoRow(Icons.Rounded.MusicNote, "Música y avisos", "Activar") { actions.request(Permission.NOTIFICATIONS_ACCESS) }
             else -> InfoRow(Icons.Rounded.MusicNote, "Nada sonando")
         }

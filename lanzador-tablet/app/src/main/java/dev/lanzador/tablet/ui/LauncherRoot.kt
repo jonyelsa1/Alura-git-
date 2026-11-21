@@ -60,6 +60,7 @@ fun LauncherRoot(vm: LauncherViewModel) {
         darkTextOnWallpaper = darkText,
         homePresses = homePresses,
         loadingApps = !loaded,
+        mediaSupported = dev.lanzador.tablet.BuildConfig.NOTIFICACIONES,
     )
     LauncherScreen(state = state, actions = actions)
 }

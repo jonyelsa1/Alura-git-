@@ -37,6 +37,8 @@ data class HomeState(
     val media: MediaInfo? = null,
     val notifications: Map<String, NotifSummary> = emptyMap(),
     val notificationAccess: Boolean = false,
+    /** false en la versión ligera, que no incluye el lector de notificaciones. */
+    val mediaSupported: Boolean = true,
     val photos: PhotoUi = PhotoUi.NoPermission,
     val device: DeviceToggles = DeviceToggles(),
     val tasks: List<TaskItem> = emptyList(),
@@ -73,6 +75,7 @@ fun buildHomeState(
     darkTextOnWallpaper: Boolean,
     homePresses: Int,
     loadingApps: Boolean,
+    mediaSupported: Boolean = true,
 ): HomeState {
     val byKey = apps.associateBy { it.key }
     val visible = apps.filter { it.key !in hiddenKeys }
@@ -105,6 +108,7 @@ fun buildHomeState(
         darkTextOnWallpaper = darkTextOnWallpaper,
         homePresses = homePresses,
         loadingApps = loadingApps,
+        mediaSupported = mediaSupported,
     )
 }
 
@@ -153,6 +157,7 @@ interface LauncherActions {
     fun openCalendar(event: CalendarEvent?) {}
     fun openPhoto(photos: PhotoUi) {}
     fun openMediaApp(media: MediaInfo) {}
+    fun openMusicApp() {}
     fun mediaPlayPause() {}
     fun mediaNext() {}
     fun mediaPrevious() {}
