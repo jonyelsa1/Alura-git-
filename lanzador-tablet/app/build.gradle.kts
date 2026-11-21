@@ -14,8 +14,8 @@ android {
         applicationId = "dev.lanzador.tablet"
         minSdk = 29
         targetSdk = 35
-        versionCode = 6
-        versionName = "2.4"
+        versionCode = 7
+        versionName = "2.5"
     }
 
     // Clave de depuración del proyecto (no es secreta). Se versiona para que

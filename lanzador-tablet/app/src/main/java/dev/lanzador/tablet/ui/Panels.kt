@@ -266,6 +266,9 @@ private fun SettingsContent(state: HomeState, actions: LauncherActions, onClose:
             SwitchRow("Un estilo distinto cada día", "Cristal, Expresivo, Bento y Enfoque, por turnos", s.dailyRotation) { v ->
                 actions.updateSettings { it.copy(dailyRotation = v) }
             }
+            SwitchRow("Pantalla completa", "Oculta la barra de Android de abajo en el escritorio. Desliza desde el borde inferior para verla un momento.", s.fullScreen) { v ->
+                actions.updateSettings { it.copy(fullScreen = v) }
+            }
 
             Section("Fondo")
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -331,7 +334,7 @@ private fun SettingsContent(state: HomeState, actions: LauncherActions, onClose:
 
             Section("Gestos")
             Text(
-                "Desliza hacia arriba: todas las apps.\nDesliza hacia abajo: notificaciones.\nMantén pulsado el fondo: cambiar de estilo.\nMantén pulsada una app: accesos directos, favoritos, dock y más.\nMantén pulsada una tarea: borrarla.",
+                "Desliza hacia arriba: todas las apps.\nDesliza hacia abajo: notificaciones.\nMantén pulsado el fondo: cambiar de estilo.\nDesliza desde el borde inferior: barra de Android (con pantalla completa).\nMantén pulsada una app: accesos directos, favoritos, dock y más.\nMantén pulsada una tarea: borrarla.",
                 style = MaterialTheme.typography.bodyMedium.copy(color = scheme.onSurfaceVariant),
             )
             Spacer(Modifier.height(24.dp))

@@ -34,6 +34,7 @@ Cada estilo cambia también el cajón de apps, los menús y los ajustes.
 | Mantener pulsado el fondo o un widget | Selector de estilo |
 | Mantener pulsada una app | Accesos directos, favoritos, dock, orden, información, ocultar, desinstalar |
 | Tocar una tarea / mantenerla | Marcarla hecha / borrarla |
+| Deslizar desde el borde inferior | Barra de Android (con «Pantalla completa», activada por defecto) |
 | Arrastrar por el índice A-Z | Saltar a esa letra (en Enfoque abre el cajón en esa letra) |
 
 ## Instalar

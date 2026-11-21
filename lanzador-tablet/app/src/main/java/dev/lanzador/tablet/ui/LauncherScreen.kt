@@ -36,6 +36,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import dev.lanzador.tablet.data.LauncherStyle
 import dev.lanzador.tablet.data.WallpaperMode
 import dev.lanzador.tablet.ui.common.Backdrop
@@ -81,6 +83,7 @@ fun LauncherScreen(
 
     WindowSetup(
         showSystemWallpaper = mode == WallpaperMode.SYSTEM,
+        hideNavBar = state.settings.fullScreen,
         darkIcons = when {
             overlay == Overlay.DRAWER || overlay == Overlay.SETTINGS -> lightBackground(style)
             mode == WallpaperMode.SYSTEM -> state.darkTextOnWallpaper && style != LauncherStyle.ENFOQUE
@@ -141,7 +144,7 @@ fun LauncherScreen(
 }
 
 @Composable
-private fun WindowSetup(showSystemWallpaper: Boolean, darkIcons: Boolean) {
+private fun WindowSetup(showSystemWallpaper: Boolean, hideNavBar: Boolean, darkIcons: Boolean) {
     val view = LocalView.current
     if (view.isInEditMode) return
     SideEffect {
@@ -151,6 +154,10 @@ private fun WindowSetup(showSystemWallpaper: Boolean, darkIcons: Boolean) {
         WindowCompat.getInsetsController(window, view).apply {
             isAppearanceLightStatusBars = darkIcons
             isAppearanceLightNavigationBars = darkIcons
+            // Pantalla completa: la barra de tareas de la tablet se oculta en el
+            // escritorio y aparece unos segundos al deslizar desde el borde inferior.
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            if (hideNavBar) hide(WindowInsetsCompat.Type.navigationBars()) else show(WindowInsetsCompat.Type.navigationBars())
         }
     }
 }

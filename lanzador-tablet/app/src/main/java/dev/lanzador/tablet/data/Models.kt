@@ -75,6 +75,8 @@ data class LauncherSettings(
     val wallpaperPhoto: String? = null,
     val weatherPlace: WeatherPlace? = null,
     val timerMinutes: Int = 25,
+    /** Oculta la barra de Android de abajo mientras se ve el escritorio. */
+    val fullScreen: Boolean = true,
     val firstRunDone: Boolean = false,
 ) {
     fun effectiveStyle(today: LocalDate = LocalDate.now()): LauncherStyle =

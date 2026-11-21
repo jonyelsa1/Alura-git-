@@ -98,6 +98,7 @@ class LauncherPrefs private constructor(context: Context) {
             putString("wallpaper_photo", next.wallpaperPhoto)
             putString("weather_place", next.weatherPlace?.encode())
             putInt("timer_minutes", next.timerMinutes)
+            putBoolean("full_screen", next.fullScreen)
             putBoolean("first_run_done", next.firstRunDone)
         }
     }
@@ -183,6 +184,7 @@ class LauncherPrefs private constructor(context: Context) {
         wallpaperPhoto = sp.getString("wallpaper_photo", null),
         weatherPlace = WeatherPlace.decode(sp.getString("weather_place", null)),
         timerMinutes = sp.getInt("timer_minutes", 25),
+        fullScreen = sp.getBoolean("full_screen", true),
         firstRunDone = sp.getBoolean("first_run_done", false),
     )
 
