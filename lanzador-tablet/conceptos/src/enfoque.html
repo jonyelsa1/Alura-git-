@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Enfoque</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  :root { --red: #e5302a; --g1: #8b8b8b; --g2: #4a4a4a; }
+  body { font-family: 'Space Grotesk', sans-serif; color: #f2f2f2; }
+  .wall { background: #000; }
+  .dots { position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,255,255,.075) 1px, transparent 1.3px); background-size: 18px 18px; }
+  .vign { position: absolute; inset: 0; background: radial-gradient(80% 90% at 30% 40%, rgba(0,0,0,0), rgba(0,0,0,.75)); }
+
+  .left { position: absolute; left: 60px; top: 66px; width: 590px; }
+  .day { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 500; letter-spacing: 4px; color: var(--g1); }
+  .day i { width: 10px; height: 10px; border-radius: 50%; background: var(--red); }
+  .clock { font-family: 'Doto V', monospace; font-weight: 900; font-variation-settings: 'ROND' 100; font-size: 206px; line-height: .9; letter-spacing: -4px; margin: 14px 0 0 -10px; color: #fff; }
+  .clock { display: flex; align-items: center; }
+  .colon { display: inline-flex; flex-direction: column; gap: 46px; margin: 0 22px 0 14px; }
+  .colon i { width: 21px; height: 21px; border-radius: 50%; background: var(--red); }
+  .rows { margin-top: 30px; border-top: 1px solid #1f1f1f; }
+  .row { display: flex; align-items: center; gap: 16px; height: 58px; border-bottom: 1px solid #1f1f1f; font-size: 17px; font-weight: 500; letter-spacing: 1.2px; text-transform: uppercase; }
+  .row .ic { width: 20px; height: 20px; color: var(--g1); stroke-width: 1.8; }
+  .row .mut { color: var(--g1); }
+  .row .end { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .pip { width: 9px; height: 9px; border-radius: 50%; background: #fff; }
+  .pip.off { background: var(--g2); }
+  .pip.red { background: var(--red); }
+
+  .search { position: absolute; left: 60px; top: 646px; width: 590px; }
+  .field { display: flex; align-items: center; gap: 14px; height: 64px; padding: 0 22px; border-radius: 32px; background: #111; box-shadow: inset 0 0 0 1px #262626; font-size: 19px; color: var(--g1); }
+  .field .ic { width: 22px; height: 22px; color: #fff; }
+  .caret { width: 11px; height: 24px; background: var(--red); margin-right: -6px; }
+  .field kbd { margin-left: auto; font-family: inherit; font-size: 13px; letter-spacing: 1px; color: var(--g1); }
+
+  .list { position: absolute; left: 730px; top: 70px; width: 440px; }
+  .item { display: flex; align-items: center; gap: 18px; height: 64px; font-size: 36px; font-weight: 500; letter-spacing: -.5px; color: #e8e8e8; transition: none; }
+  .item .ic { width: 24px; height: 24px; color: var(--g1); stroke-width: 1.7; }
+  .item .badge { margin-left: 4px; min-width: 26px; height: 26px; border-radius: 13px; background: var(--red); color: #fff; font-size: 14px; font-weight: 700; display: grid; place-items: center; padding: 0 7px; letter-spacing: 0; }
+  .item.near1 { transform: translateX(-14px); }
+  .item.near2 { transform: translateX(-6px); }
+  .item.focus { transform: translateX(-34px); font-size: 50px; height: 80px; color: #fff; }
+  .item.focus .ic { color: var(--red); width: 30px; height: 30px; }
+  .notif { margin: -10px 0 8px 42px; font-size: 15px; color: var(--g1); letter-spacing: .3px; }
+  .notif b { color: #cfcfcf; font-weight: 500; }
+
+  .rail { position: absolute; right: 26px; top: 80px; bottom: 80px; width: 30px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 500; color: var(--g2); }
+  .rail span.w1 { transform: translateX(-8px); color: var(--g1); }
+  .rail span.w2 { transform: translateX(-16px); color: #bdbdbd; font-size: 15px; }
+  .rail span.on { transform: translateX(-28px); color: var(--red); font-size: 22px; font-weight: 700; }
+
+  .hint { position: absolute; left: 730px; bottom: 44px; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--g2); display: flex; gap: 22px; }
+  .hint span { display: flex; align-items: center; gap: 8px; }
+  .hint .ic { width: 15px; height: 15px; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="wall layer"><div class="dots"></div><div class="vign"></div></div>
+
+  <div class="status"><span>10:05</span><span class="r">{{i:bell-off}}{{i:wifi}}{{i:signal}}{{i:battery-full}}<span>82 %</span></span></div>
+
+  <div class="left">
+    <div class="day"><i></i>SÁB 21 NOV</div>
+    <div class="clock">10<span class="colon"><i></i><i></i></span>05</div>
+    <div class="rows">
+      <div class="row">{{i:cloud-sun}}<span>14° · Nubes y claros</span><span class="end mut">Madrid</span></div>
+      <div class="row">{{i:calendar}}<span>19:30 · Reunión</span><span class="end mut">en 9 h 25 min</span></div>
+      <div class="row">{{i:battery-medium}}<span>82 %</span><span class="end"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip off"></i><i class="pip off"></i></span></div>
+      <div class="row">{{i:music}}<span>Clair de lune</span><span class="end mut">Debussy · <i class="pip red" style="margin-left:6px"></i></span></div>
+    </div>
+  </div>
+
+  <div class="search">
+    <div class="field">{{i:search}}<span class="caret"></span><span>Escribe: apps, contactos, cuentas, web…</span><kbd>ABC</kbd></div>
+  </div>
+
+  <div class="list">
+    <div class="item">{{i:phone}}Teléfono</div>
+    <div class="item near2">{{i:globe}}Chrome</div>
+    <div class="item focus">{{i:sparkles}}Claude</div>
+    <div class="item near1">{{i:book-open}}JW Library</div>
+    <div class="item near2">{{i:hourglass}}Temporizador</div>
+    <div class="item">{{i:message-square}}Mensajes<span class="badge">2</span></div>
+    <div class="notif"><b>Marta:</b> ¿Quedamos mañana a las 10?</div>
+    <div class="item">{{i:image}}Fotos</div>
+    <div class="item">{{i:play}}YouTube</div>
+    <div class="item">{{i:settings}}Ajustes</div>
+  </div>
+
+  <div class="rail">
+    <span>A</span><span class="w1">B</span><span class="on">C</span><span class="w1">D</span><span>F</span><span>G</span><span>J</span><span>K</span><span>M</span><span>N</span><span>P</span><span>R</span><span>S</span><span>T</span><span>W</span><span>Y</span><span>Z</span>
+  </div>
+
+  <div class="hint"><span>{{i:arrow-up}} Todas las apps</span><span>{{i:arrow-down}} Avisos</span></div>
+
+  <div class="handle"></div>
+</div>
+</body>
+</html>
