@@ -169,7 +169,15 @@ private fun DotClock(actions: LauncherActions) {
 }
 
 @Composable
-private fun InfoRow(icon: ImageVector, text: String, end: String = "", onClick: (() -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
+private fun InfoRow(
+    icon: ImageVector,
+    text: String,
+    end: String = "",
+    // El contenido extra va antes que onClick a propósito: así una lambda final
+    // siempre es la acción al tocar y nunca se ejecuta al dibujar la fila.
+    trailing: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+) {
     Column {
         Row(
             Modifier.fillMaxWidth().height(58.dp).then(if (onClick != null) Modifier.widgetClick(onClick = onClick) else Modifier),
@@ -193,33 +201,33 @@ private fun InfoRows(state: HomeState, actions: LauncherActions, nav: HomeNav) {
     Column {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Line))
         when (val w = state.weather) {
-            is WeatherUi.Ready -> InfoRow(weatherIcon(w.data.code, w.data.isDay), "${w.data.temperature}° · ${weatherDescription(w.data.code)}", w.data.place, actions::refreshWeather)
-            WeatherUi.NotSet -> InfoRow(Icons.Rounded.WbCloudy, "Tiempo", "Elegir ciudad", nav.openSettings)
+            is WeatherUi.Ready -> InfoRow(weatherIcon(w.data.code, w.data.isDay), "${w.data.temperature}° · ${weatherDescription(w.data.code)}", w.data.place, onClick = actions::refreshWeather)
+            WeatherUi.NotSet -> InfoRow(Icons.Rounded.WbCloudy, "Tiempo", "Elegir ciudad", onClick = nav.openSettings)
             is WeatherUi.Loading -> InfoRow(Icons.Rounded.WbCloudy, "Cargando tiempo", w.place)
-            is WeatherUi.Error -> InfoRow(Icons.Rounded.WbCloudy, "Sin datos del tiempo", w.place, actions::refreshWeather)
+            is WeatherUi.Error -> InfoRow(Icons.Rounded.WbCloudy, "Sin datos del tiempo", w.place, onClick = actions::refreshWeather)
         }
         val next = state.nextEvent
         val alarm = state.nextAlarmMillis
         when {
-            next != null -> InfoRow(Icons.Rounded.CalendarToday, "${eventTime(next, is24)} · ${next.title}", if (!next.allDay && next.begin > millisNow) countdown(millisNow, next.begin) else "") { actions.openCalendar(next) }
-            state.calendar is CalendarUi.NoPermission -> InfoRow(Icons.Rounded.CalendarToday, "Calendario", "Permitir") { actions.request(Permission.CALENDAR) }
-            alarm != null -> InfoRow(Icons.Rounded.Alarm, "Alarma · ${formatAlarm(alarm, is24)}", countdown(millisNow, alarm), actions::openClock)
-            else -> InfoRow(Icons.Rounded.CalendarToday, "Sin eventos hoy", "") { actions.openCalendar(null) }
+            next != null -> InfoRow(Icons.Rounded.CalendarToday, "${eventTime(next, is24)} · ${next.title}", if (!next.allDay && next.begin > millisNow) countdown(millisNow, next.begin) else "", onClick = { actions.openCalendar(next) })
+            state.calendar is CalendarUi.NoPermission -> InfoRow(Icons.Rounded.CalendarToday, "Calendario", "Permitir", onClick = { actions.request(Permission.CALENDAR) })
+            alarm != null -> InfoRow(Icons.Rounded.Alarm, "Alarma · ${formatAlarm(alarm, is24)}", countdown(millisNow, alarm), onClick = actions::openClock)
+            else -> InfoRow(Icons.Rounded.CalendarToday, "Sin eventos hoy", "", onClick = { actions.openCalendar(null) })
         }
         val level = state.battery?.level ?: 0
-        InfoRow(Icons.Rounded.BatteryStd, "$level %" + if (state.battery?.charging == true) " · cargando" else "", onClick = { actions.quick(QuickAction.BATTERY) }) {
+        InfoRow(Icons.Rounded.BatteryStd, "$level %" + if (state.battery?.charging == true) " · cargando" else "", onClick = { actions.quick(QuickAction.BATTERY) }, trailing = {
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 repeat(10) { i -> Box(Modifier.size(9.dp).clip(CircleShape).background(if (i < (level + 5) / 10) Color.White else G2)) }
             }
-        }
+        })
         val media = state.media
         when {
-            media != null -> InfoRow(Icons.Rounded.MusicNote, media.title, media.artist, onClick = actions::mediaPlayPause) {
+            media != null -> InfoRow(Icons.Rounded.MusicNote, media.title, media.artist, onClick = actions::mediaPlayPause, trailing = {
                 Spacer(Modifier.width(10.dp))
                 Box(Modifier.size(9.dp).clip(CircleShape).background(if (media.playing) Red else G2))
-            }
-            !state.mediaSupported -> InfoRow(Icons.Rounded.MusicNote, "Música", "Abrir", actions::openMusicApp)
-            !state.notificationAccess -> InfoRow(Icons.Rounded.MusicNote, "Música y avisos", "Activar") { actions.request(Permission.NOTIFICATIONS_ACCESS) }
+            })
+            !state.mediaSupported -> InfoRow(Icons.Rounded.MusicNote, "Música", "Abrir", onClick = actions::openMusicApp)
+            !state.notificationAccess -> InfoRow(Icons.Rounded.MusicNote, "Música y avisos", "Activar", onClick = { actions.request(Permission.NOTIFICATIONS_ACCESS) })
             else -> InfoRow(Icons.Rounded.MusicNote, "Nada sonando")
         }
     }
@@ -313,7 +321,7 @@ private fun Hints(nav: HomeNav, modifier: Modifier) {
             Modifier.clip(RoundedCornerShape(10.dp)).widgetClick(onClickLabel = "Cambiar estilo", onClick = nav.openStylePicker).padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Rounded.Palette, null, Modifier.size(16.dp), tint = Red)
+            Icon(Icons.Rounded.Palette, "Cambiar estilo", Modifier.size(16.dp), tint = Red)
             Spacer(Modifier.width(8.dp))
             Text("ESTILO", style = s(13.sp, 600, Color(0xFFBDBDBD), 1.5.sp))
         }
