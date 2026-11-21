@@ -1,6 +1,7 @@
 package dev.lanzador.tablet.ui
 
 import android.app.Activity
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -9,27 +10,16 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -38,113 +28,123 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
-import dev.lanzador.tablet.data.AppListKind
-import java.time.LocalDateTime
+import dev.lanzador.tablet.data.LauncherStyle
+import dev.lanzador.tablet.data.WallpaperMode
+import dev.lanzador.tablet.ui.common.Backdrop
+import dev.lanzador.tablet.ui.common.LocalBackdrop
+import dev.lanzador.tablet.ui.common.WallpaperLayer
+import dev.lanzador.tablet.ui.common.rememberBackdrop
+import dev.lanzador.tablet.ui.styles.BentoHome
+import dev.lanzador.tablet.ui.styles.CristalHome
+import dev.lanzador.tablet.ui.styles.EnfoqueHome
+import dev.lanzador.tablet.ui.styles.ExpresivoHome
+import dev.lanzador.tablet.ui.theme.StyleTheme
+import dev.lanzador.tablet.ui.theme.lightBackground
+
+enum class Overlay { NONE, DRAWER, SETTINGS, STYLES, TASK }
 
 /**
- * Pantalla completa del launcher. Sin estado propio de Android: todo llega en
- * [state] y sale por [actions], así se puede dibujar en pruebas y vistas previas.
+ * Raíz del launcher: fondo, pantalla de inicio del estilo elegido y capas
+ * (cajón, ajustes, selector de estilo, nueva tarea). No toca Android salvo la
+ * ventana; todo lo demás pasa por [actions].
  */
 @Composable
 fun LauncherScreen(
     state: HomeState,
     actions: LauncherActions,
-    fixedTime: LocalDateTime? = null,
-    initialDrawerOpen: Boolean = false,
-    initialSettingsOpen: Boolean = false,
+    initialOverlay: Overlay = Overlay.NONE,
+    backdropOverride: Backdrop? = null,
 ) {
-    var drawerOpen by rememberSaveable { mutableStateOf(initialDrawerOpen) }
-    var drawerWantsKeyboard by remember { mutableStateOf(false) }
-    var settingsOpen by rememberSaveable { mutableStateOf(initialSettingsOpen) }
-    var noteOpen by rememberSaveable { mutableStateOf(false) }
+    val style = state.style
+    val mode = state.settings.wallpaperMode
+    var overlay by rememberSaveable { mutableStateOf(initialOverlay) }
+    var drawerKeyboard by remember { mutableStateOf(false) }
+    var drawerLetter by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(state.homePresses) {
         if (state.homePresses > 0) {
-            drawerOpen = false
-            settingsOpen = false
-            noteOpen = false
+            overlay = Overlay.NONE
             focusManager.clearFocus()
         }
     }
-
-    // En el escritorio «Atrás» no hace nada (un launcher no se cierra).
     BackHandler(enabled = true) { focusManager.clearFocus() }
 
-    val darkSurfaces = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val overlayOpen = drawerOpen || settingsOpen || noteOpen
-    SystemBarIcons(darkIcons = if (overlayOpen) !darkSurfaces else state.darkTextOnWallpaper)
+    WindowSetup(
+        showSystemWallpaper = mode == WallpaperMode.SYSTEM,
+        darkIcons = when {
+            overlay == Overlay.DRAWER || overlay == Overlay.SETTINGS -> lightBackground(style)
+            mode == WallpaperMode.SYSTEM -> state.darkTextOnWallpaper && style != LauncherStyle.ENFOQUE
+            else -> lightBackground(style)
+        },
+    )
 
-    val onWallpaper = if (state.darkTextOnWallpaper) Color(0xFF15151B) else Color.White
-
-    val openDrawer: (Boolean) -> Unit = { keyboard ->
-        drawerWantsKeyboard = keyboard
-        drawerOpen = true
+    val nav = remember {
+        HomeNav(
+            openDrawer = { keyboard, letter -> drawerKeyboard = keyboard; drawerLetter = letter; overlay = Overlay.DRAWER },
+            openSettings = { overlay = Overlay.SETTINGS },
+            openStylePicker = { overlay = Overlay.STYLES },
+            addTask = { overlay = Overlay.TASK },
+        )
     }
 
-    Box(Modifier.fillMaxSize()) {
-        HomeContent(
-            state = state,
-            actions = actions,
-            fixedTime = fixedTime,
-            onWallpaper = onWallpaper,
-            openDrawer = openDrawer,
-            openSettings = { settingsOpen = true },
-            openNote = { noteOpen = true },
-            modifier = Modifier.homeGestures(
-                onSwipeUp = { openDrawer(false) },
-                onSwipeDown = actions::expandNotifications,
-                onTap = { focusManager.clearFocus() },
-                onLongPress = { settingsOpen = true },
-            ),
-        )
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val landscape = maxWidth > maxHeight
+        val density = LocalDensity.current.density
+        val live = rememberBackdrop(style, mode, state.settings.wallpaperPhoto, IntSize(constraints.maxWidth, constraints.maxHeight), density)
+        val backdrop = backdropOverride ?: live
+        CompositionLocalProvider(LocalBackdrop provides backdrop) {
+            WallpaperLayer(style, mode, backdrop)
+            StyleTheme(style) {
+                Box(
+                    Modifier.fillMaxSize()
+                        .windowInsetsPadding(WindowInsets.systemBars.union(WindowInsets.displayCutout))
+                        .homeGestures(
+                            onSwipeUp = { nav.openDrawer(false, null) },
+                            onSwipeDown = actions::expandNotifications,
+                            onTap = { focusManager.clearFocus() },
+                            onLongPress = nav.openStylePicker,
+                        ),
+                ) {
+                    when (style) {
+                        LauncherStyle.CRISTAL -> CristalHome(state, actions, nav, landscape)
+                        LauncherStyle.EXPRESIVO -> ExpresivoHome(state, actions, nav, landscape)
+                        LauncherStyle.BENTO -> BentoHome(state, actions, nav, landscape)
+                        LauncherStyle.ENFOQUE -> EnfoqueHome(state, actions, nav, landscape)
+                    }
+                }
 
-        AnimatedVisibility(
-            visible = drawerOpen,
-            enter = fadeIn() + slideInVertically { it / 8 },
-            exit = fadeOut() + slideOutVertically { it / 8 },
-        ) {
-            AppDrawer(
-                state = state,
-                actions = actions,
-                focusSearch = drawerWantsKeyboard,
-                onClose = { drawerOpen = false },
-            )
+                AnimatedVisibility(
+                    visible = overlay == Overlay.DRAWER,
+                    enter = fadeIn() + slideInVertically { it / 10 },
+                    exit = fadeOut() + slideOutVertically { it / 10 },
+                ) {
+                    AppDrawer(state, actions, drawerKeyboard, drawerLetter, onClose = { overlay = Overlay.NONE })
+                }
+                TaskEditor(overlay == Overlay.TASK, actions, onClose = { overlay = Overlay.NONE })
+                StylePicker(overlay == Overlay.STYLES, state, actions, onMore = { overlay = Overlay.SETTINGS }, onClose = { overlay = Overlay.NONE })
+                SettingsPanel(overlay == Overlay.SETTINGS, state, actions, onClose = { overlay = Overlay.NONE })
+            }
         }
-
-        NoteEditor(
-            visible = noteOpen,
-            initial = state.note,
-            onChange = actions::updateNote,
-            onClose = { noteOpen = false },
-        )
-
-        SettingsPanel(
-            visible = settingsOpen,
-            state = state,
-            actions = actions,
-            onClose = { settingsOpen = false },
-        )
     }
 }
 
 @Composable
-private fun SystemBarIcons(darkIcons: Boolean) {
+private fun WindowSetup(showSystemWallpaper: Boolean, darkIcons: Boolean) {
     val view = LocalView.current
     if (view.isInEditMode) return
     SideEffect {
         val window = (view.context as? Activity)?.window ?: return@SideEffect
+        if (showSystemWallpaper) window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
         WindowCompat.getInsetsController(window, view).apply {
             isAppearanceLightStatusBars = darkIcons
             isAppearanceLightNavigationBars = darkIcons
@@ -176,147 +176,10 @@ private fun Modifier.homeGestures(
                         total > threshold -> down()
                     }
                 },
-            ) { change, dragAmount ->
-                total += dragAmount
+            ) { change, amount ->
+                total += amount
                 change.consume()
             }
         }
-        .pointerInput(Unit) {
-            detectTapGestures(onTap = { tap() }, onLongPress = { longPress() })
-        }
+        .pointerInput(Unit) { detectTapGestures(onTap = { tap() }, onLongPress = { longPress() }) }
 }
-
-@Composable
-private fun HomeContent(
-    state: HomeState,
-    actions: LauncherActions,
-    fixedTime: LocalDateTime?,
-    onWallpaper: Color,
-    openDrawer: (Boolean) -> Unit,
-    openSettings: () -> Unit,
-    openNote: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    BoxWithConstraints(
-        modifier
-            .fillMaxSize()
-            // Sin el teclado: si aparece, se superpone en lugar de aplastar el escritorio.
-            .windowInsetsPadding(WindowInsets.systemBars.union(WindowInsets.displayCutout)),
-    ) {
-        val landscape = maxWidth > maxHeight
-        val roomy = maxWidth >= 1000.dp || maxHeight >= 1000.dp
-        val gutter = if (roomy) 40.dp else 24.dp
-        val gap = if (roomy) 20.dp else 14.dp
-        val bigClock = (if (landscape) maxHeight else maxWidth) >= 700.dp
-        val iconSize = state.settings.iconSize.dp.dp
-
-        val clock = @Composable { m: Modifier ->
-            ClockBlock(
-                now = rememberNow(fixedTime),
-                battery = state.battery,
-                nextAlarmMillis = state.nextAlarmMillis,
-                color = onWallpaper,
-                big = bigClock,
-                modifier = m,
-            )
-        }
-        val weather = @Composable { m: Modifier ->
-            WeatherCard(
-                weather = state.weather,
-                onClick = { if (state.settings.weatherPlace == null) openSettings() else actions.refreshWeather() },
-                modifier = m,
-            )
-        }
-        val note = @Composable { m: Modifier -> NoteCard(text = state.note, onClick = openNote, modifier = m) }
-        val searchRow = @Composable {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SearchPill(onClick = { openDrawer(true) }, modifier = Modifier.weight(1f))
-                Spacer(Modifier.width(12.dp))
-                RoundIconAction(
-                    icon = Icons.Rounded.Settings,
-                    description = "Ajustes del lanzador",
-                    onClick = openSettings,
-                )
-            }
-        }
-        val favorites = @Composable { m: Modifier ->
-            FavoritesPanel(
-                apps = state.favorites,
-                state = state,
-                actions = actions,
-                iconSize = iconSize,
-                onOpenDrawer = { openDrawer(false) },
-                modifier = m,
-            )
-        }
-        val dock = @Composable { m: Modifier ->
-            Dock(
-                apps = state.dock,
-                state = state,
-                actions = actions,
-                iconSize = iconSize,
-                onOpenDrawer = { openDrawer(false) },
-                modifier = m,
-            )
-        }
-
-        if (landscape) {
-            Column(Modifier.fillMaxSize().padding(horizontal = gutter, vertical = gap)) {
-                Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gutter)) {
-                    Column(
-                        Modifier.weight(0.42f).fillMaxHeight(),
-                        verticalArrangement = Arrangement.spacedBy(gap),
-                    ) {
-                        clock(Modifier)
-                        if (state.settings.showNote) {
-                            if (state.settings.showWeather) weather(Modifier.fillMaxWidth())
-                            note(Modifier.fillMaxWidth().weight(1f))
-                        } else {
-                            Spacer(Modifier.weight(1f))
-                            if (state.settings.showWeather) weather(Modifier.fillMaxWidth())
-                        }
-                    }
-                    Column(
-                        Modifier.weight(0.58f).fillMaxHeight(),
-                        verticalArrangement = Arrangement.spacedBy(gap),
-                    ) {
-                        searchRow()
-                        favorites(Modifier.fillMaxWidth().weight(1f))
-                        if (state.settings.showQuickSettings) QuickSettingsRow(onAction = actions::quick)
-                    }
-                }
-                Spacer(Modifier.height(gap))
-                dock(Modifier.align(Alignment.CenterHorizontally))
-            }
-        } else {
-            Column(
-                Modifier.fillMaxSize().padding(horizontal = gutter, vertical = gap),
-                verticalArrangement = Arrangement.spacedBy(gap),
-            ) {
-                clock(Modifier.padding(top = 8.dp))
-                if (state.settings.showWeather || state.settings.showNote) {
-                    Row(
-                        Modifier.fillMaxWidth().height(cardRowHeight(roomy)),
-                        horizontalArrangement = Arrangement.spacedBy(gap),
-                    ) {
-                        if (state.settings.showWeather) weather(Modifier.weight(1f).fillMaxHeight())
-                        if (state.settings.showNote) note(Modifier.weight(1f).fillMaxHeight())
-                    }
-                }
-                searchRow()
-                favorites(Modifier.fillMaxWidth().weight(1f))
-                if (state.settings.showQuickSettings) QuickSettingsRow(onAction = actions::quick)
-                dock(Modifier.align(Alignment.CenterHorizontally))
-            }
-        }
-    }
-}
-
-private fun cardRowHeight(roomy: Boolean): Dp = if (roomy) 168.dp else 140.dp
-
-/** Contexto del menú de una app: en qué lista está y en qué posición, para «Mover antes/después». */
-data class TileMenuContext(
-    val kind: AppListKind? = null,
-    val index: Int = -1,
-    val size: Int = 0,
-)

@@ -2,8 +2,15 @@ package dev.lanzador.tablet.data
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
+import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.content.pm.ShortcutInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
@@ -36,8 +43,10 @@ class AppRepository(private val context: Context) {
     private val launcherApps = context.getSystemService(LauncherApps::class.java)
     private val userManager = context.getSystemService(UserManager::class.java)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val iconCache = HashMap<String, ImageBitmap>()
+    private val cache = HashMap<String, Icons>()
     private var reloadJob: Job? = null
+
+    private class Icons(val full: ImageBitmap, val glyph: ImageBitmap?, val foreground: ImageBitmap?, val tint: Int)
 
     private val _apps = MutableStateFlow<List<AppEntry>>(emptyList())
     val apps: StateFlow<List<AppEntry>> = _apps.asStateFlow()
@@ -70,8 +79,8 @@ class AppRepository(private val context: Context) {
         reloadJob?.cancel()
         reloadJob = scope.launch {
             if (changedPackages.isNotEmpty()) {
-                synchronized(iconCache) {
-                    iconCache.keys.removeAll { key -> changedPackages.any { key.startsWith("$it/") } }
+                synchronized(cache) {
+                    cache.keys.removeAll { key -> changedPackages.any { key.startsWith("$it/") } }
                 }
             }
             _apps.value = loadApps()
@@ -81,7 +90,7 @@ class AppRepository(private val context: Context) {
 
     private suspend fun loadApps(): List<AppEntry> = withContext(Dispatchers.IO) {
         val metrics = context.resources.displayMetrics
-        val iconPx = (ICON_SOURCE_DP * metrics.density).roundToInt().coerceAtLeast(96)
+        val iconPx = (ICON_DP * metrics.density).roundToInt().coerceIn(96, 192)
         val me = Process.myUserHandle()
         val result = ArrayList<AppEntry>()
         for (user in userManager.userProfiles) {
@@ -92,13 +101,8 @@ class AppRepository(private val context: Context) {
                 val component = info.componentName
                 if (component.packageName == context.packageName) continue
                 val key = "${component.flattenToShortString()}#$serial"
-                val cached = synchronized(iconCache) { iconCache[key] }
-                val icon = cached ?: run {
-                    val drawable = runCatching { info.getBadgedIcon(metrics.densityDpi) }.getOrNull()
-                        ?: context.packageManager.defaultActivityIcon
-                    drawable.toBitmap(iconPx, iconPx).asImageBitmap().also {
-                        synchronized(iconCache) { iconCache[key] = it }
-                    }
+                val icons = synchronized(cache) { cache[key] } ?: loadIcons(info, metrics.densityDpi, iconPx).also {
+                    synchronized(cache) { cache[key] = it }
                 }
                 result += AppEntry(
                     key = key,
@@ -106,7 +110,11 @@ class AppRepository(private val context: Context) {
                     packageName = component.packageName,
                     component = component,
                     user = user,
-                    icon = icon,
+                    icon = icons.full,
+                    glyph = icons.glyph,
+                    foreground = icons.foreground,
+                    tint = icons.tint,
+                    category = info.applicationInfo.category,
                     isSystem = (info.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
                     isWorkProfile = user != me,
                 )
@@ -114,6 +122,56 @@ class AppRepository(private val context: Context) {
         }
         val collator = Collator.getInstance(Locale.getDefault()).apply { strength = Collator.PRIMARY }
         result.sortedWith { a, b -> collator.compare(a.label, b.label) }
+    }
+
+    private fun loadIcons(info: LauncherActivityInfo, densityDpi: Int, px: Int): Icons {
+        val badged = runCatching { info.getBadgedIcon(densityDpi) }.getOrNull()
+            ?: context.packageManager.defaultActivityIcon
+        val full = badged.toBitmap(px, px)
+        val plain = runCatching { info.getIcon(densityDpi) }.getOrNull()
+        var glyph: Bitmap? = null
+        var foreground: Bitmap? = null
+        if (plain is AdaptiveIconDrawable) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                plain.monochrome?.let { glyph = renderLayer(it, px, whiten = true) }
+            }
+            plain.foreground?.let { foreground = renderLayer(it, px, whiten = false) }
+        }
+        return Icons(
+            full = full.asImageBitmap(),
+            glyph = glyph?.asImageBitmap(),
+            foreground = foreground?.asImageBitmap(),
+            tint = dominantColor(full),
+        )
+    }
+
+    /** Dibuja una capa de 108 dp recortando el margen exterior, como hace el sistema. */
+    private fun renderLayer(layer: Drawable, px: Int, whiten: Boolean): Bitmap {
+        val bitmap = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val inset = px / 4
+        layer.setBounds(-inset, -inset, px + inset, px + inset)
+        if (whiten) layer.setTint(Color.WHITE)
+        layer.draw(canvas)
+        if (whiten) layer.setTintList(null)
+        return bitmap
+    }
+
+    /** Media de los píxeles con color, para tintar el cristal de cada icono. */
+    private fun dominantColor(bitmap: Bitmap): Int {
+        val small = Bitmap.createScaledBitmap(bitmap, 24, 24, true)
+        var r = 0f; var g = 0f; var b = 0f; var weight = 0f
+        val hsv = FloatArray(3)
+        for (y in 0 until 24) for (x in 0 until 24) {
+            val c = small.getPixel(x, y)
+            if (Color.alpha(c) < 200) continue
+            Color.colorToHSV(c, hsv)
+            val w = hsv[1] * hsv[2] + 0.05f
+            r += Color.red(c) * w; g += Color.green(c) * w; b += Color.blue(c) * w; weight += w
+        }
+        if (small != bitmap) small.recycle()
+        if (weight == 0f) return Color.rgb(120, 130, 150)
+        return Color.rgb((r / weight).toInt(), (g / weight).toInt(), (b / weight).toInt())
     }
 
     fun launch(app: AppEntry): Boolean = runCatching {
@@ -144,6 +202,6 @@ class AppRepository(private val context: Context) {
     }.isSuccess
 
     private companion object {
-        const val ICON_SOURCE_DP = 96
+        const val ICON_DP = 96
     }
 }

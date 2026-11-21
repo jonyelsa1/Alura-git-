@@ -1,6 +1,5 @@
 package dev.lanzador.tablet.ui
 
-import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -8,7 +7,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.lanzador.tablet.DeviceActions
 import dev.lanzador.tablet.LauncherViewModel
-import dev.lanzador.tablet.ui.theme.LauncherTheme
+import dev.lanzador.tablet.MainActivity
+import dev.lanzador.tablet.data.NotificationHub
 
 /** Conecta el ViewModel con la interfaz, que no sabe nada de Android. */
 @Composable
@@ -19,38 +19,47 @@ fun LauncherRoot(vm: LauncherViewModel) {
     val dock by vm.prefs.dock.collectAsStateWithLifecycle()
     val hidden by vm.prefs.hidden.collectAsStateWithLifecycle()
     val usage by vm.prefs.usage.collectAsStateWithLifecycle()
-    val note by vm.prefs.note.collectAsStateWithLifecycle()
     val settings by vm.prefs.settings.collectAsStateWithLifecycle()
+    val tasks by vm.prefs.tasks.collectAsStateWithLifecycle()
+    val timer by vm.prefs.timer.collectAsStateWithLifecycle()
     val weather by vm.weather.collectAsStateWithLifecycle()
     val battery by vm.battery.collectAsStateWithLifecycle()
     val alarm by vm.nextAlarm.collectAsStateWithLifecycle()
+    val calendar by vm.calendar.collectAsStateWithLifecycle()
+    val photos by vm.photos.collectAsStateWithLifecycle()
+    val device by vm.device.collectAsStateWithLifecycle()
+    val access by vm.notificationAccess.collectAsStateWithLifecycle()
+    val media by NotificationHub.media.collectAsStateWithLifecycle()
+    val notifications by NotificationHub.notifications.collectAsStateWithLifecycle()
     val darkText by vm.darkTextOnWallpaper.collectAsStateWithLifecycle()
     val homePresses by vm.homePresses.collectAsStateWithLifecycle()
+    val today by vm.today.collectAsStateWithLifecycle()
 
-    val activity = LocalContext.current as Activity
+    val activity = LocalContext.current as MainActivity
     val actions = remember(activity, vm) { DeviceActions(activity, vm) }
 
-    val state = remember(
-        apps, loaded, favorites, dock, hidden, usage, note, settings, weather, battery, alarm, darkText, homePresses,
-    ) {
-        buildHomeState(
-            apps = apps,
-            favoriteKeys = favorites,
-            dockKeys = dock,
-            hiddenKeys = hidden,
-            usage = usage,
-            settings = settings,
-            note = note,
-            weather = weather,
-            battery = battery,
-            nextAlarmMillis = alarm,
-            darkTextOnWallpaper = darkText,
-            homePresses = homePresses,
-            loadingApps = !loaded,
-        )
-    }
-
-    LauncherTheme(settings.theme) {
-        LauncherScreen(state = state, actions = actions)
-    }
+    val state = buildHomeState(
+        apps = apps,
+        favoriteKeys = favorites,
+        dockKeys = dock,
+        hiddenKeys = hidden,
+        usage = usage,
+        settings = settings,
+        style = settings.effectiveStyle(today),
+        weather = weather,
+        battery = battery,
+        nextAlarmMillis = alarm,
+        calendar = calendar,
+        media = media,
+        notifications = notifications,
+        notificationAccess = access,
+        photos = photos,
+        device = device,
+        tasks = tasks,
+        timer = timer,
+        darkTextOnWallpaper = darkText,
+        homePresses = homePresses,
+        loadingApps = !loaded,
+    )
+    LauncherScreen(state = state, actions = actions)
 }

@@ -8,8 +8,12 @@ import kotlinx.coroutines.flow.asStateFlow
 
 enum class AppListKind { FAVORITES, DOCK }
 
-/** Favoritos, dock, apps ocultas, nota y ajustes. Todo en SharedPreferences. */
-class LauncherPrefs(context: Context) {
+/**
+ * Favoritos, dock, apps ocultas, tareas, temporizador y ajustes, en SharedPreferences.
+ * Una sola instancia por proceso para que el receptor del temporizador y la
+ * interfaz vean los mismos datos.
+ */
+class LauncherPrefs private constructor(context: Context) {
 
     private val sp = context.getSharedPreferences("lanzador", Context.MODE_PRIVATE)
 
@@ -25,11 +29,14 @@ class LauncherPrefs(context: Context) {
     private val _usage = MutableStateFlow(readUsage())
     val usage: StateFlow<Map<String, Int>> = _usage.asStateFlow()
 
-    private val _note = MutableStateFlow(sp.getString(K_NOTE, "").orEmpty())
-    val note: StateFlow<String> = _note.asStateFlow()
-
     private val _settings = MutableStateFlow(readSettings())
     val settings: StateFlow<LauncherSettings> = _settings.asStateFlow()
+
+    private val _tasks = MutableStateFlow(readTasks())
+    val tasks: StateFlow<List<TaskItem>> = _tasks.asStateFlow()
+
+    private val _timer = MutableStateFlow(readTimer())
+    val timer: StateFlow<TimerState> = _timer.asStateFlow()
 
     fun list(kind: AppListKind): List<String> = when (kind) {
         AppListKind.FAVORITES -> _favorites.value
@@ -55,11 +62,7 @@ class LauncherPrefs(context: Context) {
         setList(kind, if (key in current) current - key else current + key)
     }
 
-    /**
-     * Mueve [key] una posición entre las apps que se ven. Se trabaja sobre las
-     * claves visibles para que una app desinstalada guardada en la lista no
-     * convierta el movimiento en un intercambio invisible.
-     */
+    /** Mueve [key] una posición entre las apps que se ven (no entre claves de apps desinstaladas). */
     fun move(kind: AppListKind, key: String, delta: Int, visibleKeys: List<String>) {
         val index = visibleKeys.indexOf(key)
         val neighbour = visibleKeys.getOrNull(index + delta) ?: return
@@ -85,22 +88,47 @@ class LauncherPrefs(context: Context) {
         sp.edit { putString(K_USAGE, next.entries.joinToString("\n") { "${it.key}\t${it.value}" }) }
     }
 
-    fun setNote(text: String) {
-        _note.value = text
-        sp.edit { putString(K_NOTE, text) }
-    }
-
     fun updateSettings(transform: (LauncherSettings) -> LauncherSettings) {
         val next = transform(_settings.value)
         _settings.value = next
         sp.edit {
-            putString("icon_size", next.iconSize.name)
-            putString("theme", next.theme.name)
-            putBoolean("show_weather", next.showWeather)
-            putBoolean("show_note", next.showNote)
-            putBoolean("show_quick", next.showQuickSettings)
+            putString("style", next.style.name)
+            putBoolean("daily_rotation", next.dailyRotation)
+            putString("wallpaper_mode", next.wallpaperMode.name)
+            putString("wallpaper_photo", next.wallpaperPhoto)
             putString("weather_place", next.weatherPlace?.encode())
+            putInt("timer_minutes", next.timerMinutes)
             putBoolean("first_run_done", next.firstRunDone)
+        }
+    }
+
+    // --- Tareas ---
+
+    fun addTask(text: String) {
+        val clean = text.replace('\n', ' ').replace('\t', ' ').trim()
+        if (clean.isEmpty()) return
+        saveTasks(_tasks.value + TaskItem(System.currentTimeMillis(), clean, false))
+    }
+
+    fun toggleTask(id: Long) = saveTasks(_tasks.value.map { if (it.id == id) it.copy(done = !it.done) else it })
+
+    fun deleteTask(id: Long) = saveTasks(_tasks.value.filterNot { it.id == id })
+
+    fun clearDoneTasks() = saveTasks(_tasks.value.filterNot { it.done })
+
+    private fun saveTasks(list: List<TaskItem>) {
+        _tasks.value = list
+        sp.edit { putString(K_TASKS, list.joinToString("\n") { "${it.id}\t${if (it.done) 1 else 0}\t${it.text}" }) }
+    }
+
+    // --- Temporizador ---
+
+    fun setTimer(state: TimerState) {
+        _timer.value = state
+        sp.edit {
+            putLong("timer_duration", state.durationMs)
+            putLong("timer_end", state.endAt)
+            putLong("timer_remaining", state.remainingMs)
         }
     }
 
@@ -114,10 +142,13 @@ class LauncherPrefs(context: Context) {
                 .distinct()
                 .take(max)
 
-        val dock = pick(DOCK_CANDIDATES, 6, emptySet())
-        val favorites = pick(FAVORITE_CANDIDATES, 10, dock.toSet())
-        if (_dock.value.isEmpty()) setList(AppListKind.DOCK, dock)
+        val favorites = pick(FAVORITE_CANDIDATES, 9, emptySet())
+        val dock = pick(DOCK_CANDIDATES, 7, emptySet())
         if (_favorites.value.isEmpty()) setList(AppListKind.FAVORITES, favorites)
+        if (_dock.value.isEmpty()) setList(AppListKind.DOCK, dock)
+        if (_tasks.value.isEmpty()) {
+            saveTasks(listOf(TaskItem(1, "Mantén pulsada una tarea para borrarla", false)))
+        }
         updateSettings { it.copy(firstRunDone = true) }
     }
 
@@ -130,52 +161,75 @@ class LauncherPrefs(context: Context) {
             if (tab <= 0) null else line.substring(0, tab) to (line.substring(tab + 1).toIntOrNull() ?: 0)
         }.toMap()
 
+    private fun readTasks(): List<TaskItem> =
+        readList(K_TASKS).mapNotNull { line ->
+            val parts = line.split('\t', limit = 3)
+            if (parts.size != 3) null else TaskItem(parts[0].toLongOrNull() ?: return@mapNotNull null, parts[2], parts[1] == "1")
+        }
+
+    private fun readTimer(): TimerState {
+        val minutes = sp.getInt("timer_minutes", 25)
+        val duration = sp.getLong("timer_duration", minutes * 60_000L)
+        val end = sp.getLong("timer_end", 0L)
+        val remaining = sp.getLong("timer_remaining", duration)
+        return TimerState(duration, end, remaining)
+    }
+
     private fun readSettings() = LauncherSettings(
-        iconSize = IconSize.entries.firstOrNull { it.name == sp.getString("icon_size", null) } ?: IconSize.MEDIUM,
-        theme = ThemeMode.entries.firstOrNull { it.name == sp.getString("theme", null) } ?: ThemeMode.SYSTEM,
-        showWeather = sp.getBoolean("show_weather", true),
-        showNote = sp.getBoolean("show_note", true),
-        showQuickSettings = sp.getBoolean("show_quick", true),
+        style = LauncherStyle.entries.firstOrNull { it.name == sp.getString("style", null) } ?: LauncherStyle.CRISTAL,
+        dailyRotation = sp.getBoolean("daily_rotation", false),
+        wallpaperMode = WallpaperMode.entries.firstOrNull { it.name == sp.getString("wallpaper_mode", null) }
+            ?: WallpaperMode.STYLE,
+        wallpaperPhoto = sp.getString("wallpaper_photo", null),
         weatherPlace = WeatherPlace.decode(sp.getString("weather_place", null)),
+        timerMinutes = sp.getInt("timer_minutes", 25),
         firstRunDone = sp.getBoolean("first_run_done", false),
     )
 
-    private companion object {
-        const val K_FAVORITES = "favorites"
-        const val K_DOCK = "dock"
-        const val K_HIDDEN = "hidden"
-        const val K_USAGE = "usage"
-        const val K_NOTE = "note"
+    companion object {
+        @Volatile private var instance: LauncherPrefs? = null
 
-        val DOCK_CANDIDATES = listOf(
+        fun get(context: Context): LauncherPrefs =
+            instance ?: synchronized(this) {
+                instance ?: LauncherPrefs(context.applicationContext).also { instance = it }
+            }
+
+        private const val K_FAVORITES = "favorites"
+        private const val K_DOCK = "dock"
+        private const val K_HIDDEN = "hidden"
+        private const val K_USAGE = "usage"
+        private const val K_TASKS = "tasks"
+
+        private val FAVORITE_CANDIDATES = listOf(
+            "com.google.android.dialer",
             "com.android.chrome",
             "com.anthropic.claude",
             "org.jw.jwlibrary.mobile",
-            "com.google.android.dialer",
-            "com.android.vending",
+            "com.google.android.youtube",
+            "com.google.android.apps.photos",
+            "com.google.android.apps.maps",
             "com.android.settings",
+            "com.google.android.calendar",
+            "com.google.android.gm",
+            "com.whatsapp",
+            "com.google.android.keep",
+            "com.google.android.deskclock",
+            "com.android.vending",
         )
 
-        val FAVORITE_CANDIDATES = listOf(
-            "com.google.android.youtube",
-            "com.google.android.gm",
-            "com.google.android.apps.photos",
-            "com.google.android.calendar",
-            "com.google.android.apps.maps",
-            "com.google.android.keep",
-            "com.google.android.apps.docs",
+        private val DOCK_CANDIDATES = listOf(
             "com.whatsapp",
             "com.google.android.apps.messaging",
-            "com.google.android.contacts",
+            "com.google.android.gm",
+            "com.google.android.calendar",
             "com.mediatek.camera",
             "com.android.camera2",
             "com.google.android.GoogleCamera",
-            "com.google.android.deskclock",
-            "com.android.deskclock",
-            "com.google.android.calculator",
-            "com.android.calculator2",
+            "com.google.android.keep",
+            "com.google.android.apps.youtube.music",
+            "com.spotify.music",
+            "com.android.vending",
             "com.google.android.apps.nbu.files",
-            "com.google.android.documentsui",
         )
     }
 }

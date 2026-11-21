@@ -1,8 +1,10 @@
 package dev.lanzador.tablet.ui
 
+import android.content.pm.ApplicationInfo
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,31 +18,30 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,29 +52,45 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.lanzador.tablet.data.AppEntry
+import dev.lanzador.tablet.data.LauncherStyle
+import dev.lanzador.tablet.ui.common.AppGlyph
+import dev.lanzador.tablet.ui.common.AppTarget
+import dev.lanzador.tablet.ui.common.ColorAppIcon
+import dev.lanzador.tablet.ui.common.GlassAppIcon
+import dev.lanzador.tablet.ui.common.LetterRail
+import dev.lanzador.tablet.ui.common.LocalBackdrop
+import dev.lanzador.tablet.ui.common.PolarShape
+import dev.lanzador.tablet.ui.common.ShapedAppIcon
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.Normalizer
 import java.util.Locale
+import kotlin.math.roundToInt
 
 private val COMBINING_MARKS = Regex("\\p{Mn}+")
 
@@ -97,9 +114,26 @@ fun filterApps(apps: List<AppEntry>, query: String): List<AppEntry> {
     }.sortedBy { it.first }.map { it.second }
 }
 
-private fun sectionOf(label: String): String {
+fun sectionOf(label: String): String {
     val first = normalizeForSearch(label).firstOrNull() ?: return "#"
     return if (first.isLetter()) first.uppercaseChar().toString() else "#"
+}
+
+/** Etiquetas automáticas a partir de la categoría que declara cada app. */
+enum class AppTag(val label: String) {
+    ALL("Todas"), FAVORITES("Favoritas"), SOCIAL("Comunicación"), PRODUCTIVITY("Trabajo"),
+    MEDIA("Multimedia"), NEWS("Lectura"), MAPS("Mapas"), GAMES("Juegos");
+
+    fun matches(app: AppEntry, favorites: Set<String>): Boolean = when (this) {
+        ALL -> true
+        FAVORITES -> app.key in favorites
+        SOCIAL -> app.category == ApplicationInfo.CATEGORY_SOCIAL
+        PRODUCTIVITY -> app.category == ApplicationInfo.CATEGORY_PRODUCTIVITY
+        MEDIA -> app.category in setOf(ApplicationInfo.CATEGORY_AUDIO, ApplicationInfo.CATEGORY_VIDEO, ApplicationInfo.CATEGORY_IMAGE)
+        NEWS -> app.category == ApplicationInfo.CATEGORY_NEWS
+        MAPS -> app.category == ApplicationInfo.CATEGORY_MAPS
+        GAMES -> app.category == ApplicationInfo.CATEGORY_GAME
+    }
 }
 
 sealed interface DrawerItem {
@@ -114,26 +148,30 @@ sealed interface DrawerItem {
     }
 }
 
-/** «Frecuentes» arriba y después todas las apps seguidas, sin una cabecera por letra. */
 fun buildDrawerItems(apps: List<AppEntry>, frequent: List<AppEntry>): List<DrawerItem> {
     val items = ArrayList<DrawerItem>(apps.size + frequent.size + 2)
     if (frequent.isNotEmpty()) {
         items += DrawerItem.Header("Frecuentes")
         frequent.forEach { items += DrawerItem.App(it, "frecuentes") }
-        items += DrawerItem.Header("Todas")
+        items += DrawerItem.Header("Todas · A–Z")
     }
     apps.forEach { items += DrawerItem.App(it, sectionOf(it.label)) }
     return items
 }
+
+private val ExpresivoShapes: List<Shape> = listOf(CircleShape, RoundedCornerShape(34), PolarShape(9, 0.09f), PolarShape(4, 0.16f))
 
 @Composable
 fun AppDrawer(
     state: HomeState,
     actions: LauncherActions,
     focusSearch: Boolean,
+    initialLetter: String?,
     onClose: () -> Unit,
 ) {
+    val style = state.style
     var query by rememberSaveable { mutableStateOf("") }
+    var tag by rememberSaveable { mutableStateOf(AppTag.ALL) }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -143,9 +181,7 @@ fun AppDrawer(
         keyboard?.hide()
         currentOnClose()
     }
-
     BackHandler { if (query.isNotEmpty()) query = "" else close() }
-
     LaunchedEffect(focusSearch) {
         if (focusSearch) {
             delay(150)
@@ -154,11 +190,8 @@ fun AppDrawer(
         }
     }
 
-    val results = remember(query, state.apps) { filterApps(state.apps, query) }
-    val iconSize = state.settings.iconSize.dp.dp
     val scheme = MaterialTheme.colorScheme
-
-    // Tirar hacia abajo con la lista arriba del todo cierra el cajón.
+    val results = remember(query, state.apps) { filterApps(state.apps, query) }
     val pullThreshold = with(LocalDensity.current) { 120.dp.toPx() }
     val pullToClose = remember(pullThreshold) {
         object : NestedScrollConnection {
@@ -183,49 +216,44 @@ fun AppDrawer(
         }
     }
 
-    Surface(Modifier.fillMaxSize(), color = scheme.surface, contentColor = scheme.onSurface) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(start = 32.dp, end = 20.dp, top = 16.dp),
-        ) {
-            Row(
-                Modifier.fillMaxWidth().padding(end = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Todas las apps", style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        "${state.apps.size} apps",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = scheme.onSurfaceVariant,
+    CompositionLocalProvider(LocalContentColor provides scheme.onSurface) {
+        Box(Modifier.fillMaxSize().drawerBackground(style)) {
+            Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(start = 40.dp, end = 20.dp, top = 18.dp)) {
+                Row(Modifier.fillMaxWidth().padding(end = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    SearchBox(
+                        style, query, { query = it }, focusRequester,
+                        hint = "Buscar en ${state.apps.size} apps",
+                        onGo = {
+                            val first = results.firstOrNull()
+                            when {
+                                first != null -> { actions.launch(first); close() }
+                                query.isNotBlank() -> { actions.webSearch(query.trim()); close() }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
                     )
+                    Spacer(Modifier.width(14.dp))
+                    Box(
+                        Modifier.size(60.dp).clip(CircleShape).background(fieldColor(style)).clickable(onClickLabel = "Cerrar", onClick = close),
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(Icons.Rounded.Close, "Cerrar", Modifier.size(26.dp)) }
                 }
-                SearchField(
-                    query = query,
-                    onQueryChange = { query = it },
-                    focusRequester = focusRequester,
-                    onGo = {
-                        val first = results.firstOrNull()
-                        when {
-                            first != null -> { actions.launch(first); close() }
-                            query.isNotBlank() -> { actions.webSearch(query.trim()); close() }
-                        }
-                    },
-                    modifier = Modifier.widthIn(max = 640.dp).weight(1.4f),
-                )
-                Spacer(Modifier.width(16.dp))
-                FilledTonalIconButton(onClick = close, modifier = Modifier.padding(4.dp)) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Cerrar")
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            Box(Modifier.weight(1f).nestedScroll(pullToClose)) {
                 if (query.isBlank()) {
-                    AllAppsGrid(state, actions, iconSize, onLaunched = close)
-                } else {
-                    SearchResults(results, query, state, actions, iconSize, onLaunched = close)
+                    val tags = remember(state.apps, state.favoriteKeys) {
+                        AppTag.entries.filter { t -> t == AppTag.ALL || state.apps.any { t.matches(it, state.favoriteKeys) } }
+                    }
+                    Row(Modifier.padding(top = 16.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        tags.forEach { t -> TagChip(style, t.label, t == tag) { tag = t } }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Box(Modifier.weight(1f).nestedScroll(pullToClose)) {
+                    if (query.isBlank()) {
+                        val apps = if (tag == AppTag.ALL) state.apps else state.apps.filter { tag.matches(it, state.favoriteKeys) }
+                        AllApps(state, actions, apps, if (tag == AppTag.ALL) state.frequent else emptyList(), initialLetter, close)
+                    } else {
+                        Results(state, actions, results, query, close)
+                    }
                 }
             }
         }
@@ -233,67 +261,169 @@ fun AppDrawer(
 }
 
 @Composable
-private fun SearchField(
+private fun Modifier.drawerBackground(style: LauncherStyle): Modifier {
+    val backdrop = LocalBackdrop.current
+    return when (style) {
+        LauncherStyle.EXPRESIVO -> background(Color(0xFFF7EFE7))
+        LauncherStyle.ENFOQUE -> background(Color.Black)
+        else -> drawBehind {
+            val img = backdrop.blurred
+            if (img != null) {
+                drawImage(img, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()), filterQuality = FilterQuality.High)
+                drawRect(if (style == LauncherStyle.CRISTAL) Color(0x8C12082F) else Color(0xC20C0818))
+            } else {
+                drawRect(if (style == LauncherStyle.CRISTAL) Color(0xF01B1238) else Color(0xF515102A))
+            }
+        }
+    }
+}
+
+private fun fieldColor(style: LauncherStyle): Color = when (style) {
+    LauncherStyle.CRISTAL -> Color.White.copy(alpha = 0.16f)
+    LauncherStyle.EXPRESIVO -> Color.White
+    LauncherStyle.BENTO -> Color.White.copy(alpha = 0.08f)
+    LauncherStyle.ENFOQUE -> Color(0xFF141414)
+}
+
+@Composable
+private fun SearchBox(
+    style: LauncherStyle,
     query: String,
-    onQueryChange: (String) -> Unit,
+    onChange: (String) -> Unit,
     focusRequester: FocusRequester,
+    hint: String,
     onGo: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    TextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = modifier.focusRequester(focusRequester),
-        singleLine = true,
-        placeholder = { Text("Buscar apps o en la web") },
-        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) { Icon(Icons.Rounded.Close, contentDescription = "Borrar") }
+    val text = MaterialTheme.typography.bodyLarge.copy(fontSize = 19.sp, color = scheme.onSurface)
+    Row(
+        modifier.height(60.dp).clip(RoundedCornerShape(30.dp)).background(fieldColor(style)).padding(start = 22.dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Rounded.Search, null, Modifier.size(23.dp), tint = if (style == LauncherStyle.EXPRESIVO) scheme.primary else scheme.onSurface)
+        Spacer(Modifier.width(14.dp))
+        BasicTextField(
+            value = query,
+            onValueChange = onChange,
+            singleLine = true,
+            textStyle = text,
+            cursorBrush = SolidColor(if (style == LauncherStyle.ENFOQUE) Color(0xFFE5302A) else scheme.primary),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+            keyboardActions = KeyboardActions(onGo = { onGo() }),
+            modifier = Modifier.weight(1f).focusRequester(focusRequester),
+            decorationBox = { inner ->
+                Box(contentAlignment = Alignment.CenterStart) {
+                    if (query.isEmpty()) Text(hint, style = text.copy(color = scheme.onSurfaceVariant))
+                    inner()
+                }
+            },
+        )
+        if (query.isNotEmpty()) {
+            Box(Modifier.size(44.dp).clip(CircleShape).clickable { onChange("") }, contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Close, "Borrar", Modifier.size(22.dp))
             }
-        },
-        shape = RoundedCornerShape(30.dp),
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = scheme.surfaceContainerHigh,
-            unfocusedContainerColor = scheme.surfaceContainerHigh,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-        ),
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-        keyboardActions = KeyboardActions(onGo = { onGo() }),
-        textStyle = MaterialTheme.typography.bodyLarge,
+        } else {
+            Text("Intro: buscar en la web", style = MaterialTheme.typography.bodySmall.copy(color = scheme.onSurfaceVariant), modifier = Modifier.padding(end = 14.dp))
+        }
+    }
+}
+
+@Composable
+private fun TagChip(style: LauncherStyle, label: String, selected: Boolean, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val (bg, fg) = when {
+        selected && style == LauncherStyle.CRISTAL -> Color.White to Color(0xFF2A1460)
+        selected && style == LauncherStyle.ENFOQUE -> Color(0xFFE5302A) to Color.White
+        selected -> scheme.primary to scheme.onPrimary
+        else -> fieldColor(style) to scheme.onSurface
+    }
+    Text(
+        label,
+        style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = fg),
+        modifier = Modifier.clip(RoundedCornerShape(19.dp)).background(bg).clickable(onClick = onClick).padding(horizontal = 18.dp, vertical = 9.dp),
     )
 }
 
 @Composable
-private fun AllAppsGrid(
+private fun DrawerTile(state: HomeState, actions: LauncherActions, app: AppEntry, index: Int, onLaunched: () -> Unit) {
+    val style = state.style
+    val badge = state.notifications[app.packageName]?.count ?: 0
+    val scheme = MaterialTheme.colorScheme
+    if (style == LauncherStyle.ENFOQUE) {
+        AppTarget(app, state, actions, shape = RoundedCornerShape(12.dp), onLaunched = onLaunched, modifier = Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth().height(58.dp).padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) { AppGlyph(app, 40.dp, Color(0xFF8B8B8B), monochromeFallback = true) }
+                Spacer(Modifier.width(14.dp))
+                Text(app.label, style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, color = Color(0xFFE8E8E8)), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                if (badge > 0) {
+                    Spacer(Modifier.width(10.dp))
+                    Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFE5302A)))
+                }
+            }
+        }
+        return
+    }
+    val iconSize: Dp = when (style) {
+        LauncherStyle.EXPRESIVO -> 72.dp
+        else -> 64.dp
+    }
+    val shape: Shape = if (style == LauncherStyle.EXPRESIVO) ExpresivoShapes[index % ExpresivoShapes.size] else RoundedCornerShape(20.dp)
+    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        AppTarget(app, state, actions, shape = shape, onLaunched = onLaunched) {
+            when (style) {
+                LauncherStyle.CRISTAL -> GlassAppIcon(app, iconSize, tinted = true, badge = badge)
+                LauncherStyle.EXPRESIVO -> ShapedAppIcon(app, iconSize, shape, badge = badge)
+                else -> ColorAppIcon(app, iconSize, badge = badge)
+            }
+        }
+        Text(
+            app.label,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = scheme.onSurface),
+            maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
+        )
+    }
+}
+
+private fun columnsFor(style: LauncherStyle) =
+    if (style == LauncherStyle.ENFOQUE) GridCells.Adaptive(280.dp) else GridCells.Adaptive(if (style == LauncherStyle.EXPRESIVO) 124.dp else 112.dp)
+
+@Composable
+private fun AllApps(
     state: HomeState,
     actions: LauncherActions,
-    iconSize: androidx.compose.ui.unit.Dp,
+    apps: List<AppEntry>,
+    frequent: List<AppEntry>,
+    initialLetter: String?,
     onLaunched: () -> Unit,
 ) {
-    val items = remember(state.apps, state.frequent) { buildDrawerItems(state.apps, state.frequent) }
-    val letters = remember(state.apps) { state.apps.map { sectionOf(it.label) }.distinct() }
-    val gridState = rememberLazyGridState()
-    val scope = rememberCoroutineScope()
+    val style = state.style
     val scheme = MaterialTheme.colorScheme
+    val items = remember(apps, frequent) { buildDrawerItems(apps, frequent) }
+    val letters = remember(apps) { apps.map { sectionOf(it.label) }.distinct() }
+    val grid = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
+    fun indexOf(letter: String) = items.indexOfFirst { it is DrawerItem.App && it.section == letter }
+
+    LaunchedEffect(initialLetter, items) {
+        if (initialLetter != null) {
+            val i = indexOf(initialLetter)
+            if (i >= 0) grid.scrollToItem(i)
+        }
+    }
 
     if (items.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                if (state.loadingApps) "Cargando apps…" else "No hay apps que mostrar",
-                style = MaterialTheme.typography.bodyLarge,
-                color = scheme.onSurfaceVariant,
-            )
+            Text(if (state.loadingApps) "Cargando apps…" else "No hay apps con esta etiqueta", style = MaterialTheme.typography.bodyLarge.copy(color = scheme.onSurfaceVariant))
         }
         return
     }
 
     Row(Modifier.fillMaxSize()) {
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(iconSize + 52.dp),
-            state = gridState,
+            columns = columnsFor(style),
+            state = grid,
             modifier = Modifier.weight(1f).fillMaxHeight(),
             contentPadding = PaddingValues(bottom = 32.dp),
         ) {
@@ -305,117 +435,53 @@ private fun AllAppsGrid(
             ) { item ->
                 when (item) {
                     is DrawerItem.Header -> Text(
-                        item.title,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = scheme.primary,
-                        modifier = Modifier.padding(start = 14.dp, top = 18.dp, bottom = 2.dp),
+                        item.title.uppercase(),
+                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.6.sp, color = scheme.onSurfaceVariant),
+                        modifier = Modifier.padding(start = 12.dp, top = 18.dp, bottom = 4.dp),
                     )
-                    is DrawerItem.App -> AppTile(
-                        app = item.app,
-                        iconSize = iconSize,
-                        state = state,
-                        actions = actions,
-                        onLaunched = onLaunched,
-                    )
+                    is DrawerItem.App -> DrawerTile(state, actions, item.app, items.indexOf(item), onLaunched)
                 }
             }
         }
         if (letters.size > 3) {
+            val (idle, active) = when (style) {
+                LauncherStyle.ENFOQUE -> Color(0xFF4A4A4A) to Color(0xFFE5302A)
+                LauncherStyle.EXPRESIVO -> Color(0xFF7A7287) to Color(0xFF6F43E0)
+                LauncherStyle.BENTO -> Color(0xFFA99FC4) to Color(0xFFFFB547)
+                LauncherStyle.CRISTAL -> Color.White.copy(alpha = 0.7f) to Color.White
+            }
             LetterRail(
-                letters = letters,
-                onLetter = { letter ->
-                    val index = items.indexOfFirst { it is DrawerItem.App && it.section == letter }
-                    if (index >= 0) scope.launch { gridState.scrollToItem(index) }
-                },
-                modifier = Modifier.width(40.dp).fillMaxHeight().padding(vertical = 8.dp),
-            )
-        }
-    }
-}
-
-/** Índice A-Z: tocar o arrastrar salta a la letra. */
-@Composable
-private fun LetterRail(letters: List<String>, onLetter: (String) -> Unit, modifier: Modifier = Modifier) {
-    var active by remember { mutableStateOf<String?>(null) }
-    val currentLetters by rememberUpdatedState(letters)
-    val currentOnLetter by rememberUpdatedState(onLetter)
-    val haptics = LocalHapticFeedback.current
-    val scheme = MaterialTheme.colorScheme
-    Column(
-        modifier.pointerInput(Unit) {
-            fun pick(y: Float) {
-                val list = currentLetters
-                if (list.isEmpty() || size.height == 0) return
-                val i = (y / size.height * list.size).toInt().coerceIn(0, list.lastIndex)
-                if (active != list[i]) {
-                    active = list[i]
-                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    currentOnLetter(list[i])
-                }
-            }
-            awaitEachGesture {
-                val down = awaitFirstDown()
-                pick(down.position.y)
-                down.consume()
-                while (true) {
-                    val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
-                    if (!change.pressed) break
-                    pick(change.position.y)
-                    change.consume()
-                }
-                active = null
-            }
-        },
-        verticalArrangement = Arrangement.SpaceEvenly,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        letters.forEach { letter ->
-            Text(
-                letter,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = if (letter == active) FontWeight.Bold else FontWeight.Medium,
-                ),
-                color = if (letter == active) scheme.primary else scheme.onSurfaceVariant,
+                letters,
+                Modifier.width(40.dp).fillMaxHeight().padding(vertical = 10.dp),
+                idle = idle, active = active,
+                style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                onPick = { l -> val i = indexOf(l); if (i >= 0) scope.launch { grid.scrollToItem(i) } },
             )
         }
     }
 }
 
 @Composable
-private fun SearchResults(
-    results: List<AppEntry>,
-    query: String,
-    state: HomeState,
-    actions: LauncherActions,
-    iconSize: androidx.compose.ui.unit.Dp,
-    onLaunched: () -> Unit,
-) {
+private fun Results(state: HomeState, actions: LauncherActions, results: List<AppEntry>, query: String, onLaunched: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxSize().padding(end = 12.dp)) {
-        FilledTonalButton(onClick = { actions.webSearch(query.trim()); onLaunched() }) {
-            Icon(Icons.Rounded.Public, contentDescription = null)
+    Column(Modifier.fillMaxSize().padding(end = 20.dp)) {
+        Row(
+            Modifier.padding(top = 4.dp).clip(RoundedCornerShape(24.dp)).background(fieldColor(state.style))
+                .clickable { actions.webSearch(query.trim()); onLaunched() }.padding(horizontal = 18.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Rounded.Public, null, Modifier.size(20.dp))
             Spacer(Modifier.width(10.dp))
-            Text("Buscar «${query.trim()}» en la web")
+            Text("Buscar «${query.trim()}» en la web", style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp, color = scheme.onSurface))
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
         if (results.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    "Ninguna app coincide con «${query.trim()}»",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = scheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
+                Text("Ninguna app coincide con «${query.trim()}»", style = MaterialTheme.typography.bodyLarge.copy(color = scheme.onSurfaceVariant))
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(iconSize + 52.dp),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 32.dp),
-            ) {
-                items(results, key = { it.key }) { app ->
-                    AppTile(app = app, iconSize = iconSize, state = state, actions = actions, onLaunched = onLaunched)
-                }
+            LazyVerticalGrid(columns = columnsFor(state.style), modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp)) {
+                items(results, key = { it.key }) { app -> DrawerTile(state, actions, app, results.indexOf(app), onLaunched) }
             }
         }
     }

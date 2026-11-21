@@ -33,11 +33,23 @@ object WeatherClient {
         val url = "https://api.open-meteo.com/v1/forecast" +
             "?latitude=${place.latitude}&longitude=${place.longitude}" +
             "&current=temperature_2m,weather_code,is_day" +
+            "&hourly=temperature_2m,weather_code,is_day&forecast_hours=9" +
             "&daily=temperature_2m_max,temperature_2m_min" +
             "&timezone=auto&forecast_days=1"
         val json = JSONObject(get(url))
         val current = json.getJSONObject("current")
         val daily = json.getJSONObject("daily")
+        val hourly = json.optJSONObject("hourly")
+        val forecast = if (hourly == null) emptyList() else {
+            val times = hourly.getJSONArray("time")
+            val temps = hourly.getJSONArray("temperature_2m")
+            val codes = hourly.getJSONArray("weather_code")
+            val days = hourly.optJSONArray("is_day")
+            (0 until times.length()).mapNotNull { i ->
+                val hour = times.getString(i).substringAfter('T').take(2).toIntOrNull() ?: return@mapNotNull null
+                HourForecast(hour, temps.getDouble(i).roundToInt(), codes.getInt(i), (days?.optInt(i, 1) ?: 1) == 1)
+            }
+        }
         WeatherNow(
             place = place.name,
             temperature = current.getDouble("temperature_2m").roundToInt(),
@@ -45,6 +57,7 @@ object WeatherClient {
             isDay = current.optInt("is_day", 1) == 1,
             max = daily.getJSONArray("temperature_2m_max").getDouble(0).roundToInt(),
             min = daily.getJSONArray("temperature_2m_min").getDouble(0).roundToInt(),
+            hourly = forecast,
         )
     }
 
@@ -65,7 +78,7 @@ object WeatherClient {
 fun weatherDescription(code: Int): String = when (code) {
     0 -> "Despejado"
     1 -> "Casi despejado"
-    2 -> "Parcialmente nublado"
+    2 -> "Nubes y claros"
     3 -> "Nublado"
     45, 48 -> "Niebla"
     in 51..57 -> "Llovizna"
