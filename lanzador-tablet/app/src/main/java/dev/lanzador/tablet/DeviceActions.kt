@@ -222,10 +222,15 @@ class DeviceActions(
     override fun timerReset() = FocusTimer.reset(activity)
     override fun timerMinutes(minutes: Int) = FocusTimer.setMinutes(activity, minutes)
 
+    /**
+     * Abre la primera pantalla disponible. Siempre en su propia tarea: sin
+     * NEW_TASK la app abierta (Calendar, Ajustes…) se queda encima del launcher
+     * y al pulsar Inicio aparece ella en vez del escritorio.
+     */
     private fun start(vararg intents: Intent) {
         for (intent in intents) {
             try {
-                activity.startActivity(intent)
+                activity.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 return
             } catch (_: ActivityNotFoundException) {
             } catch (_: SecurityException) {
